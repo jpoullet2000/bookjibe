@@ -26,18 +26,18 @@ class Writer:
         if self._chain:
             return self._chain
         else:
-            return create_chain_from_memory_and_prompt(llm=self.llm, prompt=self.prompt, memory=self.initial_memory)
+            return create_chain_from_memory_and_prompt(
+                llm=self.llm, prompt=self.prompt, memory=self.initial_memory
+            )
 
     def _generate_prompt(self, human_prompt_file: Union[str, Path]):
         human_prompt_txt = get_human_prompt_from_file(human_prompt_file)
         prompt = get_prompt()
         return f"{human_prompt_txt} {prompt}"
 
-
-
-
-
-    def save_history_to_file(file_path: Union[str, Path], chain_memory: ConversationBufferMemory):
+    def save_history_to_file(
+        file_path: Union[str, Path], chain_memory: ConversationBufferMemory
+    ):
         """Save the conversation history to a file.
 
         It should keep the messages in the same order as they were generated.
@@ -65,8 +65,8 @@ class Writer:
             chapter_counter = 1
             if isinstance(message, AIMessage) and i > 2:
                 history[f"chapter{chapter_counter}"] = {
-                    "human_message": messages[i-1].content,
-                    "ai_message": message.content
+                    "human_message": messages[i - 1].content,
+                    "ai_message": message.content,
                 }
                 chapter_counter += 1
         with open(file_path, "w") as f:
@@ -74,15 +74,18 @@ class Writer:
         # with open(file_path, "w") as f:
         #     f.write(history)
 
-
-    def update_chain_memory_with_messages_from_file(file_path: Union[str, Path], chain_memory: ConversationBufferMemory, keep_chapters: int = None):
+    def update_chain_memory_with_messages_from_file(
+        file_path: Union[str, Path],
+        chain_memory: ConversationBufferMemory,
+        keep_chapters: int = None,
+    ):
         """Load the conversation history from a file and add to the chain memory.
 
         Args:
             file_path (str): The path to the file where the history is saved.
             chain_memory (ConversationBufferMemory): The memory of the chain that contains the conversation history.
             keep_chapters (int): The number of chapters to keep in the memory. If None, keep all chapters.
-            
+
         Returns:
             list: The list of messages in the same order as they were generated.
 
@@ -104,10 +107,11 @@ class Writer:
             chapter_number = int(chapter.replace("chapter", ""))
             if keep_chapters is not None and chapter_number > keep_chapters:
                 break
-            chain_memory.chat_memory.messages.append(HumanMessage(messages["human_message"]))
+            chain_memory.chat_memory.messages.append(
+                HumanMessage(messages["human_message"])
+            )
             chain_memory.chat_memory.messages.append(AIMessage(messages["ai_message"]))
         return chain_memory
-
 
     def get_human_prompt_from_file(file_path: Union[str, Path]):
         """Load the prompt from a file.
@@ -124,10 +128,8 @@ class Writer:
 
     def get_prompt():
         prompt = hub.pull("hwchase17/openai-functions-agent")
-        prompt.input_variables = ['agent_scratchpad', 'input', 'context']
+        prompt.input_variables = ["agent_scratchpad", "input", "context"]
         return prompt
-
-
 
     def generate_next_chapter(chain, prompt, chapter, temporary_file_path=None):
         """Generate the next chapter of the book.
@@ -144,26 +146,34 @@ class Writer:
         temporary_file_path = "/tmp/temporary_file.txt"
         txt_french = f"Ecris le chapitre {chapter} de l'histoire."
         versions = {}
-        versions[1] = chain({
-            "input": f"{txt_french} {prompt}",
-            "agent_scratchpad": [],
-            "input_documents": [Document(page_content=prompt, metadata={"source": "local"})]
-        })
+        versions[1] = chain(
+            {
+                "input": f"{txt_french} {prompt}",
+                "agent_scratchpad": [],
+                "input_documents": [
+                    Document(page_content=prompt, metadata={"source": "local"})
+                ],
+            }
+        )
         ai_message1 = chain.memory.chat_memory.messages.pop(-1)
         human_message1 = chain.memory.chat_memory.messages.pop(-1)
 
-        versions[2] = chain({
-            "input": f"{txt_french} {prompt}",
-            "agent_scratchpad": [],
-            "input_documents": [Document(page_content=prompt, metadata={"source": "local"})]
-        })
+        versions[2] = chain(
+            {
+                "input": f"{txt_french} {prompt}",
+                "agent_scratchpad": [],
+                "input_documents": [
+                    Document(page_content=prompt, metadata={"source": "local"})
+                ],
+            }
+        )
         ai_message2 = chain.memory.chat_memory.messages.pop(-1)
         human_message2 = chain.memory.chat_memory.messages.pop(-1)
 
         # Demandez à l'utilisateur de choisir la meilleure version
         print("Version 1:", versions[1]["output_text"])
         print("Version 2:", versions[2]["output_text"])
-            
+
         with open(temporary_file_path, "a") as f:
             f.write(f"Chapitre {chapter}\n")
             f.write("Version 1:\n")
@@ -172,7 +182,9 @@ class Writer:
             f.write("Version 2:\n")
             f.write(versions[2]["output_text"])
             f.write("\n\n\n")
-        user_choice = int(input("Choisissez la version (1 ou 2, ou 0 si aucune version convient): "))
+        user_choice = int(
+            input("Choisissez la version (1 ou 2, ou 0 si aucune version convient): ")
+        )
 
         # Use the prefered version to generate the next chapter
         if user_choice == 1:
@@ -188,7 +200,6 @@ class Writer:
             next_chapter = chapter
         return chain, next_chapter
 
-
     def generate_book(chain, number_of_chapters, starting_chapter=1):
         """Generate a book using a chain.
 
@@ -199,12 +210,13 @@ class Writer:
         Returns:
             list: The list of chapters in the book.
         """
-        chapter = starting_chapter 
+        chapter = starting_chapter
         while chapter <= number_of_chapters:
-            prompt = input(f"Want to add something specific for this chapter {chapter}: ")
+            prompt = input(
+                f"Want to add something specific for this chapter {chapter}: "
+            )
             chain, chapter = generate_next_chapter(chain, prompt, chapter)
         return chain
-
 
     def save_book_to_file(file_path: Union[str, Path], chain):
         """Save the book to a file.
@@ -216,14 +228,15 @@ class Writer:
         """
         book = chain.memory.chat_memory.messages
         chapters = [i.content for i in book if isinstance(i, AIMessage)]
-        
+
         with open(file_path, "w") as f:
             f.write("\n".join(chapters))
 
         return file_path
 
-
-    def init_chain(human_prompt_file: Union[str, Path], memory: ConversationBufferMemory = None):
+    def init_chain(
+        human_prompt_file: Union[str, Path], memory: ConversationBufferMemory = None
+    ):
         """Initialize the chain with a prompt and a memory.
 
         Args:
@@ -237,5 +250,11 @@ class Writer:
         prompt = get_prompt()
         chain = create_chain_from_memory_and_prompt(llm, prompt)
         prompt_story = input("Want to add something specific for the story: ")
-        chain.invoke({"input": f"{human_prompt_txt} {prompt_story}", "agent_scratchpad": [], "input_documents": []}) 
+        chain.invoke(
+            {
+                "input": f"{human_prompt_txt} {prompt_story}",
+                "agent_scratchpad": [],
+                "input_documents": [],
+            }
+        )
         return chain
