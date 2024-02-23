@@ -8,8 +8,9 @@ import base64
 import pandas as pd
 from pathlib import Path
 from dotenv import load_dotenv
-from bookjibe.writer import Writer
-
+from bookjibe.writer import Writer, create_writer_from_book_data
+import io
+from langchain_core.messages import AIMessage, HumanMessage
 
 app = dash.Dash(
     __name__,
@@ -70,11 +71,29 @@ app.layout = html.Div(
                         )
                     ],
                 ),
-
+                dcc.Upload(
+                    id="book_data",
+                    children=html.Div(
+                        ["Book Load: Drag and Drop or ", html.A("Select Files")]
+                    ),
+                    style={
+                        "width": "60%",
+                        "height": "30px",
+                        "lineHeight": "30px",
+                        "borderWidth": "1px",
+                        "borderStyle": "dashed",
+                        "borderRadius": "5px",
+                        "textAlign": "center",
+                        "margin": "5px",
+                    },
+                    # Allow multiple files to be uploaded
+                    multiple=False,
+                ),
+                dcc.Store(id="book_upload_data", data={}),
+                html.Div(id="book_upload_status"),
             ],
             className="container text-center my-4",
         ),
-        html.Br(),
         html.Div(
             [
                 dcc.Input(
@@ -95,7 +114,7 @@ app.layout = html.Div(
                     n_clicks=0,
                     className="btn btn-success mt-2",
                 ),
-                                html.Button(
+                html.Button(
                     "Restart",
                     id="restart_button",
                     n_clicks=0,
@@ -104,13 +123,46 @@ app.layout = html.Div(
                 html.Br(),
                 html.Div(id="output_table"),
                 dcc.Store(id="serialized_writer", data=get_serialized_writer()),
-                dcc.Store(id="current_chapter", data=1)
+                dcc.Store(id="current_chapter", data=1),
                 # dcc.Store(id="serialized_writer", data=serialized_writer),
             ],
             className="container",
         ),
     ]
 )
+
+
+def parse_file_contents(contents, filename):
+    """Parse the contents of a JSON file."""
+    content_type, content_string = contents.split(",")
+    decoded = base64.b64decode(content_string)
+    try:
+        if "json" in filename:
+            # Assume that the user uploaded a JSON file
+            return json.loads(decoded)
+        elif "csv" in filename:
+            # Assume that the user uploaded a CSV file
+            return pd.read_csv(io.StringIO(decoded.decode("utf-8")))
+    except Exception as e:
+        print(e)
+        return html.Div(["There was an error processing this file."])
+
+
+# @app.callback(Output('book_upload_data', 'data'),
+#               Output('book_data', 'disabled'),
+#               Output('book_upload_status', 'children'),
+#               Output("serialized_writer", "data"),
+#               Input('book_data', 'contents'),
+#               State('book_data', 'filename'),
+#               State("serialized_writer", "data")
+#               )
+# def update_output(contents, filename, serialized_writer):
+#     if contents is not None:
+#         children = parse_file_contents(contents, filename)
+#         print(f"Children: {children}")
+#         serialized_writer = serialize_writer(create_writer_from_book_data(children))
+#         return children, True, f"File {filename} uploaded", serialized_writer
+#     return {}, False, "", serialized_writer
 
 
 @app.callback(
@@ -121,27 +173,34 @@ app.layout = html.Div(
         Output("book_description", "value"),
         Output("chapter_description", "value"),
         Output("serialized_writer", "data"),
+        Output("book_upload_data", "data"),
+        Output("book_data", "disabled"),
+        Output("book_upload_status", "children"),
     ],
     [
         Input("init_story_button", "n_clicks"),
         Input("restart_button", "n_clicks"),
         Input("file_dropdown", "value"),
+        Input("book_data", "contents"),
     ],
     [
         State("book_description", "value"),
         State("init_prompt_file", "children"),
         State("chapter_description", "value"),
         State("serialized_writer", "data"),
+        State("book_data", "filename"),
     ],
 )
 def disable_and_reset_buttons(
     init_clicks,
     restart_clicks,
     file_dropdown,
+    book_data_contents,
     book_description,
     init_prompt_file,
     chapter_description,
     serialized_writer,
+    book_data_filename,
 ):
     ctx = dash.callback_context
     if ctx.triggered:
@@ -160,7 +219,40 @@ def disable_and_reset_buttons(
                 book_description,
                 chapter_description,
                 new_serialized_writer,
+                book_data_contents,
+                True,
+                "",
             )
+        elif "book_data" in prop_id:
+            if book_data_contents is not None:
+                book_items = parse_file_contents(book_data_contents, book_data_filename)
+                # print(f"Book items: {book_items}")
+                writer = create_writer_from_book_data(book_items)
+                breakpoint()
+                serialized_writer = serialize_writer(writer)
+                return (
+                    True,
+                    "Book data uploaded",
+                    None,
+                    book_description,
+                    chapter_description,
+                    serialized_writer,
+                    book_data_contents,
+                    True,
+                    "File uploaded",
+                )
+            else:
+                return (
+                    False,
+                    "No book data uploaded",
+                    None,
+                    book_description,
+                    chapter_description,
+                    serialized_writer,
+                    book_data_contents,
+                    True,
+                    "No file uploaded",
+                )
         elif "file_dropdown" in prop_id:
             return (
                 False,
@@ -169,10 +261,33 @@ def disable_and_reset_buttons(
                 book_description,
                 chapter_description,
                 serialized_writer,
+                book_data_contents,
+                True,
+                "",
             )
         elif "restart_button" in prop_id:
-            return False, select_prompt_file_txt, None, "", "", get_serialized_writer()
-    return False, select_prompt_file_txt, None, "", ""
+            return (
+                False,
+                select_prompt_file_txt,
+                None,
+                "",
+                "",
+                get_serialized_writer(),
+                {},
+                False,
+                "",
+            )
+    return (
+        False,
+        select_prompt_file_txt,
+        None,
+        "",
+        "",
+        get_serialized_writer(),
+        {},
+        False,
+        "",
+    )
 
 
 def retrieve_writer(serialized_writer):
@@ -205,11 +320,15 @@ def generate_chapter(chapter_description, current_chapter, serialized_writer):
     ],
     # State('number_of_chapters', 'value')]
 )
-def update_output(n_clicks, chapter_description, current_chapter, serialized_writer):  # , number_of_chapters):
+def update_output(
+    n_clicks, chapter_description, current_chapter, serialized_writer
+):  # , number_of_chapters):
     if n_clicks > 0:
         data = {"Chapter Description": [], "Version 1": [], "Version 2": []}
         v1, v2 = generate_chapter(chapter_description, serialized_writer)
-        data["Chapter Description"].append(f"Ch.{current_chapter}: {chapter_description}")
+        data["Chapter Description"].append(
+            f"Ch.{current_chapter}: {chapter_description}"
+        )
         data["Version 1"].append(v1)
         data["Version 2"].append(v2)
         # for _ in range(number_of_chapters):

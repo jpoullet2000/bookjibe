@@ -15,19 +15,63 @@ from bookjibe.utils import (
     get_prompt,
     create_chain_from_memory_and_prompt,
     get_human_prompt_from_file,
+    get_last_chapter_number_from_messages,
 )
 
 init_chapter_prompt = {
     "en": "Write chapter XXX of the story.",
-    "fr": "Ecris le chapitre XXX de l'histoire."
+    "fr": "Ecris le chapitre XXX de l'histoire.",
 }
+
+
+def create_writer_from_book_data(book_data):
+    """Generate a writer from the book data.
+
+    Each item of the book data is a synopsis or a chapter.
+    Each item contains a human message and an AI message.
+    The HumanMessage and the AIMessage are added to the chain memory.
+
+    Args:
+        book_data (dict): The book data to be used to generate the chain.
+
+    Returns:
+        Writer: The writer that can be used to generate the next chapter.
+
+    Examples:
+        >>> book_data = {
+        ...     "synopsis": {
+        ...         "human_message": "Write a story about a princess",
+        ...         "ai_message": "Once upon a time, there was a princess"
+        ...     "chapter1": {
+        ...         "human_message": "Once upon a time",
+        ...         "ai_message": "there was a princess"
+        ...     },
+        ...     "chapter2": {
+        ...         "human_message": "The princess was very beautiful",
+        ...         "ai_message": "and very kind"
+        ...     }
+        ... }
+        >>> writer = generate_chain_from_book_data(book_data)
+    """
+    writer = Writer()
+    # breakpoint()
+    for item_name, item_value in book_data.items():
+        writer.chain.memory.chat_memory.messages.append(
+            HumanMessage(name=item_name, content=item_value["human_message"])
+        )
+        writer.chain.memory.chat_memory.messages.append(
+            AIMessage(name=item_name, content=item_value["ai_message"])
+        )
+    return writer
 
 
 class Writer:
     _chain = None
 
-    def __init__(self, initial_memory=None):
+    def __init__(self, initial_memory: ConversationBufferMemory = None):
         # self.llm = llm
+        if initial_memory is None:
+            initial_memory = ConversationBufferMemory(memory_key="chat_history", input_key="input")
         self.initial_memory = initial_memory
         self.prompt = self._generate_prompt()
 
@@ -49,7 +93,9 @@ class Writer:
         """Generate a book idea using a chain."""
         print("Generating book story...")
         print(f"Init prompt file: {init_prompt_file}")
-        init_prompt = get_human_prompt_from_file(Path(init_prompt_folder) / init_prompt_file)
+        init_prompt = get_human_prompt_from_file(
+            Path(init_prompt_folder) / init_prompt_file
+        )
         print("Init prompt:", init_prompt)
         print("Story prompt:", story_prompt)
         return self.chain.invoke(
@@ -60,6 +106,19 @@ class Writer:
             }
         )
     
+    def get_last_chapter(self):
+        messages = self.chain.memory.chat_memory.messages
+        return get_last_chapter_number_from_messages(messages)
+
+    
+    def get_chapter_numbers_list(self):
+        """Get the list of chapter numbers from the messages. If there are no chapters, return an empty list."""
+        messages = self.chain.memory.chat_memory.messages
+        chapters = []
+        for message in messages:
+            if isinstance(message, AIMessage):
+                chapters.append(message.name)
+        return chapters
 
     def generate_chapter(self, chapter_prompt, chapter, temporary_file_path=None):
         """Generate the next chapter of the book.
@@ -76,7 +135,9 @@ class Writer:
         print("Generating chapter...")
         chain = self.chain
         temporary_file_path = Path(temporary_folder) / f"chapter{chapter}.txt"
-        init_chapter_prompt_txt = init_chapter_prompt[user_language].replace("XXX", str(chapter))
+        init_chapter_prompt_txt = init_chapter_prompt[user_language].replace(
+            "XXX", str(chapter)
+        )
         versions = {}
         versions[1] = chain(
             {
@@ -209,9 +270,6 @@ class Writer:
             )
             chain_memory.chat_memory.messages.append(AIMessage(messages["ai_message"]))
         return chain_memory
-
-
-
 
     def generate_book(chain, number_of_chapters, starting_chapter=1):
         """Generate a book using a chain.

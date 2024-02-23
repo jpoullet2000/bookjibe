@@ -43,3 +43,34 @@ def get_human_prompt_from_file(file_path: Union[str, Path]):
     with open(file_path, "r") as f:
         human_prompt = f.read()
     return human_prompt
+
+def check_if_name_in_message(messages):
+    """Check if the name attribute is in the messages and is either "synopsis" or "chapterX" where X is any integer starting from 1."""
+    for message in messages:
+        if "name" in message and (
+            message["name"] == "synopsis"
+            or message["name"].startswith("chapter")
+        ):
+            return True
+    return False
+
+def get_last_chapter_number_from_messages(messages):
+    """Get the last chapter number from the messages. If there are no chapters, return 0.
+    
+    Check first if the name attribute is in the messages and is either "synopsis" or "chapterX" where X is any integer starting from 1. 
+    If it is, return the highest chapter number found. If not, assume that AIMessages are for "synopsis", "chapter1", "chapter2", etc, in the right order. 
+    The "synopsis" message is not counted as a chapter.
+    If no AIMessage is found return 0.
+
+    """
+    if check_if_name_in_message(messages):
+        max_chapter = 0
+        for message in messages:
+            if "name" in message and message["name"].startswith("chapter"):
+                current_chapter = int(message["name"].replace("chapter", ""))
+                if current_chapter > max_chapter:
+                    max_chapter = current_chapter
+        return max_chapter
+    else:
+        return len([message for message in messages if message["type"] == "AIMessage"]) - 1
+
