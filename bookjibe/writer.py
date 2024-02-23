@@ -10,14 +10,19 @@ import copy
 from pprint import pprint
 from typing import Union
 import json
-from bookjibe.utils import get_prompt, create_chain_from_memory_and_prompt
+from bookjibe.settings import init_prompt_folder
+from bookjibe.utils import (
+    get_prompt,
+    create_chain_from_memory_and_prompt,
+    get_human_prompt_from_file,
+)
 
 
 class Writer:
     _chain = None
 
-    def __init__(self, llm, initial_memory=None):
-        self.llm = llm
+    def __init__(self, initial_memory=None):
+        # self.llm = llm
         self.initial_memory = initial_memory
         self.prompt = self._generate_prompt()
 
@@ -27,13 +32,98 @@ class Writer:
             return self._chain
         else:
             return create_chain_from_memory_and_prompt(
-                llm=self.llm, prompt=self.prompt, memory=self.initial_memory
+                llm=llm, prompt=self.prompt, memory=self.initial_memory
             )
 
-    def _generate_prompt(self, human_prompt_file: Union[str, Path]):
-        human_prompt_txt = get_human_prompt_from_file(human_prompt_file)
-        prompt = get_prompt()
-        return f"{human_prompt_txt} {prompt}"
+    def _generate_prompt(self):
+        return get_prompt()
+
+    def generate_book_story(
+        self, init_prompt_file: Union[str, Path], story_prompt: str
+    ):
+        """Generate a book idea using a chain."""
+        print("Generating book story...")
+        print(f"Init prompt file: {init_prompt_file}")
+        init_prompt = get_human_prompt_from_file(Path(init_prompt_folder) / init_prompt_file)
+        print("Init prompt:", init_prompt)
+        print("Story prompt:", story_prompt)
+        return self.chain.invoke(
+            {
+                "input": f"{init_prompt} {story_prompt}",
+                "agent_scratchpad": [],
+                "input_documents": [],
+            }
+        )
+    
+
+    def generate_next_chapter(chain, prompt, chapter, temporary_file_path=None):
+        """Generate the next chapter of the book.
+
+        Args:
+            chain (Chain): The chain to be used to generate the next chapter.
+            prompt (str): The prompt to be used for the next chapter.
+            chapter (int): The number of the current chapter.
+
+        Returns:
+            chain: The chain that can be used to generate the next chapter.
+            next_chapter (int): The next chapter of the book.
+        """
+        temporary_file_path = "/tmp/temporary_file.txt"
+        txt_french = f"Ecris le chapitre {chapter} de l'histoire."
+        versions = {}
+        versions[1] = chain(
+            {
+                "input": f"{txt_french} {prompt}",
+                "agent_scratchpad": [],
+                "input_documents": [
+                    Document(page_content=prompt, metadata={"source": "local"})
+                ],
+            }
+        )
+        ai_message1 = chain.memory.chat_memory.messages.pop(-1)
+        human_message1 = chain.memory.chat_memory.messages.pop(-1)
+
+        versions[2] = chain(
+            {
+                "input": f"{txt_french} {prompt}",
+                "agent_scratchpad": [],
+                "input_documents": [
+                    Document(page_content=prompt, metadata={"source": "local"})
+                ],
+            }
+        )
+        ai_message2 = chain.memory.chat_memory.messages.pop(-1)
+        human_message2 = chain.memory.chat_memory.messages.pop(-1)
+
+        # Demandez à l'utilisateur de choisir la meilleure version
+        print("Version 1:", versions[1]["output_text"])
+        print("Version 2:", versions[2]["output_text"])
+
+        with open(temporary_file_path, "a") as f:
+            f.write(f"Chapitre {chapter}\n")
+            f.write("Version 1:\n")
+            f.write(versions[1]["output_text"])
+            f.write("\n")
+            f.write("Version 2:\n")
+            f.write(versions[2]["output_text"])
+            f.write("\n\n\n")
+        user_choice = int(
+            input("Choisissez la version (1 ou 2, ou 0 si aucune version convient): ")
+        )
+
+        # Use the prefered version to generate the next chapter
+        if user_choice == 1:
+            chain.memory.chat_memory.messages.append(human_message1)
+            chain.memory.chat_memory.messages.append(ai_message1)
+            next_chapter = chapter + 1
+        elif user_choice == 2:
+            chain.memory.chat_memory.messages.append(human_message2)
+            chain.memory.chat_memory.messages.append(ai_message2)
+            next_chapter = chapter + 1
+        else:
+            print("Aucune version choisie. Fin de la génération.")
+            next_chapter = chapter
+        return chain, next_chapter
 
     def save_history_to_file(
         file_path: Union[str, Path], chain_memory: ConversationBufferMemory
@@ -113,92 +203,8 @@ class Writer:
             chain_memory.chat_memory.messages.append(AIMessage(messages["ai_message"]))
         return chain_memory
 
-    def get_human_prompt_from_file(file_path: Union[str, Path]):
-        """Load the prompt from a file.
 
-        Args:
-            file_path (str): The path to the file where the prompt is saved.
 
-        Returns:
-            str: The prompt to be used for the next chapter.
-        """
-        with open(file_path, "r") as f:
-            human_prompt = f.read()
-        return human_prompt
-
-    def get_prompt():
-        prompt = hub.pull("hwchase17/openai-functions-agent")
-        prompt.input_variables = ["agent_scratchpad", "input", "context"]
-        return prompt
-
-    def generate_next_chapter(chain, prompt, chapter, temporary_file_path=None):
-        """Generate the next chapter of the book.
-
-        Args:
-            chain (Chain): The chain to be used to generate the next chapter.
-            prompt (str): The prompt to be used for the next chapter.
-            chapter (int): The number of the current chapter.
-
-        Returns:
-            chain: The chain that can be used to generate the next chapter.
-            next_chapter (int): The next chapter of the book.
-        """
-        temporary_file_path = "/tmp/temporary_file.txt"
-        txt_french = f"Ecris le chapitre {chapter} de l'histoire."
-        versions = {}
-        versions[1] = chain(
-            {
-                "input": f"{txt_french} {prompt}",
-                "agent_scratchpad": [],
-                "input_documents": [
-                    Document(page_content=prompt, metadata={"source": "local"})
-                ],
-            }
-        )
-        ai_message1 = chain.memory.chat_memory.messages.pop(-1)
-        human_message1 = chain.memory.chat_memory.messages.pop(-1)
-
-        versions[2] = chain(
-            {
-                "input": f"{txt_french} {prompt}",
-                "agent_scratchpad": [],
-                "input_documents": [
-                    Document(page_content=prompt, metadata={"source": "local"})
-                ],
-            }
-        )
-        ai_message2 = chain.memory.chat_memory.messages.pop(-1)
-        human_message2 = chain.memory.chat_memory.messages.pop(-1)
-
-        # Demandez à l'utilisateur de choisir la meilleure version
-        print("Version 1:", versions[1]["output_text"])
-        print("Version 2:", versions[2]["output_text"])
-
-        with open(temporary_file_path, "a") as f:
-            f.write(f"Chapitre {chapter}\n")
-            f.write("Version 1:\n")
-            f.write(versions[1]["output_text"])
-            f.write("\n")
-            f.write("Version 2:\n")
-            f.write(versions[2]["output_text"])
-            f.write("\n\n\n")
-        user_choice = int(
-            input("Choisissez la version (1 ou 2, ou 0 si aucune version convient): ")
-        )
-
-        # Use the prefered version to generate the next chapter
-        if user_choice == 1:
-            chain.memory.chat_memory.messages.append(human_message1)
-            chain.memory.chat_memory.messages.append(ai_message1)
-            next_chapter = chapter + 1
-        elif user_choice == 2:
-            chain.memory.chat_memory.messages.append(human_message2)
-            chain.memory.chat_memory.messages.append(ai_message2)
-            next_chapter = chapter + 1
-        else:
-            print("Aucune version choisie. Fin de la génération.")
-            next_chapter = chapter
-        return chain, next_chapter
 
     def generate_book(chain, number_of_chapters, starting_chapter=1):
         """Generate a book using a chain.

@@ -1,3 +1,5 @@
+from typing import Union
+from pathlib import Path
 from langchain import hub
 from langchain_core.prompts.chat import ChatPromptTemplate
 from langchain.memory import ConversationBufferMemory
@@ -27,3 +29,17 @@ def create_chain_from_memory_and_prompt(
         memory = ConversationBufferMemory(memory_key="chat_history", input_key="input")
     chain = load_qa_chain(llm, chain_type="stuff", memory=memory, prompt=prompt)
     return chain
+
+
+def get_human_prompt_from_file(file_path: Union[str, Path]):
+    """Load the prompt from a file.
+
+    Args:
+        file_path (str): The path to the file where the prompt is saved.
+
+    Returns:
+        str: The prompt to be used for the next chapter.
+    """
+    with open(file_path, "r") as f:
+        human_prompt = f.read()
+    return human_prompt

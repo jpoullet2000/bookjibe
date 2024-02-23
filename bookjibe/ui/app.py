@@ -1,10 +1,15 @@
 import os
+import pickle
 import dash
 from dash import dcc, html, Input, Output, State
 import random
+import json
+import base64
 import pandas as pd
 from pathlib import Path
 from dotenv import load_dotenv
+from bookjibe.writer import Writer
+
 
 app = dash.Dash(
     __name__,
@@ -20,8 +25,20 @@ prompt_folder = os.getenv("BOOKJIBE_PROMPT_FOLDER")
 prompt_files = [
     file for file in os.listdir(prompt_folder) if file.endswith("prompt.txt")
 ]
-
 select_prompt_file_txt = "Select a prompt file to start the story"
+
+
+def serialize_writer(writer):
+    return base64.b64encode(pickle.dumps(writer)).decode("utf-8")
+
+
+def get_serialized_writer():
+    writer = Writer()
+    return serialize_writer(writer)
+
+
+# writer = Writer()
+# serialized_writer = pickle.dumps(writer)
 
 app.layout = html.Div(
     [
@@ -41,11 +58,17 @@ app.layout = html.Div(
                     placeholder="Book description",
                     className="form-control",
                 ),
-                html.Button(
-                    "Init story",
-                    id="init_story_button",
-                    n_clicks=0,
-                    className="btn btn-primary mt-2",
+                dcc.Loading(
+                    id="loading",
+                    type="default",
+                    children=[
+                        html.Button(
+                            "Init story",
+                            id="init_story_button",
+                            n_clicks=0,
+                            className="btn btn-primary mt-2",
+                        )
+                    ],
                 ),
                 html.Button(
                     "Restart",
@@ -79,6 +102,8 @@ app.layout = html.Div(
                 ),
                 html.Br(),
                 html.Div(id="output_table"),
+                dcc.Store(id="serialized_writer", data=get_serialized_writer()),
+                # dcc.Store(id="serialized_writer", data=serialized_writer),
             ],
             className="container",
         ),
@@ -87,41 +112,80 @@ app.layout = html.Div(
 
 
 @app.callback(
-    [Output("init_story_button", "disabled"), Output("init_prompt_file", "children"), Output("file_dropdown", "value")], 
-    [Input("init_story_button", "n_clicks"), Input("restart_button", "n_clicks"), Input('file_dropdown', 'value')],
-    [State("book_description", "value")],
+    [
+        Output("init_story_button", "disabled"),
+        Output("init_prompt_file", "children"),
+        Output("file_dropdown", "value"),
+        Output("book_description", "value"),
+        Output("chapter_description", "value"),
+        Output("serialized_writer", "data"),
+    ],
+    [
+        Input("init_story_button", "n_clicks"),
+        Input("restart_button", "n_clicks"),
+        Input("file_dropdown", "value"),
+    ],
+    [
+        State("book_description", "value"),
+        State("init_prompt_file", "children"),
+        State("chapter_description", "value"),
+        State("serialized_writer", "data"),
+    ],
 )
-def disable_init_button(init_clicks, restart_clicks, init_prompt_file, book_description):
+def disable_and_reset_buttons(
+    init_clicks,
+    restart_clicks,
+    file_dropdown,
+    book_description,
+    init_prompt_file,
+    chapter_description,
+    serialized_writer,
+):
     ctx = dash.callback_context
     if ctx.triggered:
         prop_id = ctx.triggered[0]["prop_id"]
         if "init_story_button" in prop_id:
-            init_story(book_description)
-            return True, select_prompt_file_txt, init_prompt_file
+            print(f"How init: {init_prompt_file}")
+            writer, response = init_story(
+                file_dropdown, book_description, serialized_writer
+            )
+            print(response)
+            new_serialized_writer = serialize_writer(writer)
+            return (
+                True,
+                init_prompt_file,
+                file_dropdown,
+                book_description,
+                chapter_description,
+                new_serialized_writer,
+            )
         elif "file_dropdown" in prop_id:
-            return True, f"You have selected the file: {init_prompt_file}", init_prompt_file
+            return (
+                False,
+                f"You have selected the file: {file_dropdown}",
+                file_dropdown,
+                book_description,
+                chapter_description,
+                serialized_writer,
+            )
         elif "restart_button" in prop_id:
-            return False, select_prompt_file_txt, None
-    return False
+            return False, select_prompt_file_txt, None, "", "", get_serialized_writer()
+    return False, select_prompt_file_txt, None, "", ""
 
 
-# # Define callback to update output
-# @app.callback(
-#     Output('init_prompt_file', 'children'),
-#     [Input('file_dropdown', 'value')]
-# )
-# def update_output(selected_file):
-#     if selected_file is not None:
-#         return f"You have selected the file: {selected_file}"
-#     else:
-#         return "Please select a file"
+def retrieve_writer(serialized_writer):
+    writer = pickle.loads(base64.b64decode(serialized_writer))
+    return writer
 
-def init_story(book_description):
+
+def init_story(init_prompt_file, book_description, serialized_writer):
     # Your initialization logic here
-    pass
+    writer = retrieve_writer(serialized_writer)
+    response = writer.generate_book_story(init_prompt_file, book_description)
+    return writer, response
 
 
-def generate_book(chapter_description):
+def generate_chapter(chapter_description):
     version1 = [random.randint(1, 100) for _ in range(len(chapter_description))]
     version2 = [random.randint(1, 100) for _ in range(len(chapter_description))]
     return version1, version2
@@ -138,8 +202,7 @@ def generate_book(chapter_description):
 def update_output(n_clicks, chapter_description):  # , number_of_chapters):
     if n_clicks > 0:
         data = {"Chapter Description": [], "Version 1": [], "Version 2": []}
-        # for _ in range(number_of_chapters):
-        v1, v2 = generate_book(chapter_description)
+        v1, v2 = generate_chapter(chapter_description)
         data["Chapter Description"].append(chapter_description)
         data["Version 1"].append(v1)
         data["Version 2"].append(v2)
@@ -164,9 +227,6 @@ def update_output(n_clicks, chapter_description):  # , number_of_chapters):
         return table
     else:
         return ""
-
-
-
 
 
 def save_book(chapters_data):
