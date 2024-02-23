@@ -70,12 +70,7 @@ app.layout = html.Div(
                         )
                     ],
                 ),
-                html.Button(
-                    "Restart",
-                    id="restart_button",
-                    n_clicks=0,
-                    className="btn btn-danger mt-2 ml-2",
-                ),
+
             ],
             className="container text-center my-4",
         ),
@@ -100,9 +95,16 @@ app.layout = html.Div(
                     n_clicks=0,
                     className="btn btn-success mt-2",
                 ),
+                                html.Button(
+                    "Restart",
+                    id="restart_button",
+                    n_clicks=0,
+                    className="btn btn-danger mt-2 ml-2",
+                ),
                 html.Br(),
                 html.Div(id="output_table"),
                 dcc.Store(id="serialized_writer", data=get_serialized_writer()),
+                dcc.Store(id="current_chapter", data=1)
                 # dcc.Store(id="serialized_writer", data=serialized_writer),
             ],
             className="container",
@@ -185,7 +187,9 @@ def init_story(init_prompt_file, book_description, serialized_writer):
     return writer, response
 
 
-def generate_chapter(chapter_description):
+def generate_chapter(chapter_description, current_chapter, serialized_writer):
+    writer = retrieve_writer(serialized_writer)
+    chain, chapter = writer.generate_chapter(chapter_description, current_chapter)
     version1 = [random.randint(1, 100) for _ in range(len(chapter_description))]
     version2 = [random.randint(1, 100) for _ in range(len(chapter_description))]
     return version1, version2
@@ -196,14 +200,16 @@ def generate_chapter(chapter_description):
     [Input("generate_button", "n_clicks")],
     [
         State("chapter_description", "value"),
+        State("current_chapter", "data"),
+        State("serialized_writer", "data"),
     ],
     # State('number_of_chapters', 'value')]
 )
-def update_output(n_clicks, chapter_description):  # , number_of_chapters):
+def update_output(n_clicks, chapter_description, current_chapter, serialized_writer):  # , number_of_chapters):
     if n_clicks > 0:
         data = {"Chapter Description": [], "Version 1": [], "Version 2": []}
-        v1, v2 = generate_chapter(chapter_description)
-        data["Chapter Description"].append(chapter_description)
+        v1, v2 = generate_chapter(chapter_description, serialized_writer)
+        data["Chapter Description"].append(f"Ch.{current_chapter}: {chapter_description}")
         data["Version 1"].append(v1)
         data["Version 2"].append(v2)
         # for _ in range(number_of_chapters):

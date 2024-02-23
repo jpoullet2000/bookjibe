@@ -10,12 +10,17 @@ import copy
 from pprint import pprint
 from typing import Union
 import json
-from bookjibe.settings import init_prompt_folder
+from bookjibe.settings import init_prompt_folder, user_language, temporary_folder
 from bookjibe.utils import (
     get_prompt,
     create_chain_from_memory_and_prompt,
     get_human_prompt_from_file,
 )
+
+init_chapter_prompt = {
+    "en": "Write chapter XXX of the story.",
+    "fr": "Ecris le chapitre XXX de l'histoire."
+}
 
 
 class Writer:
@@ -56,27 +61,29 @@ class Writer:
         )
     
 
-    def generate_next_chapter(chain, prompt, chapter, temporary_file_path=None):
+    def generate_chapter(self, chapter_prompt, chapter, temporary_file_path=None):
         """Generate the next chapter of the book.
 
         Args:
             chain (Chain): The chain to be used to generate the next chapter.
-            prompt (str): The prompt to be used for the next chapter.
+            chapter_prompt (str): The prompt to be used for the chapter.
             chapter (int): The number of the current chapter.
 
         Returns:
             chain: The chain that can be used to generate the next chapter.
             next_chapter (int): The next chapter of the book.
         """
-        temporary_file_path = "/tmp/temporary_file.txt"
-        txt_french = f"Ecris le chapitre {chapter} de l'histoire."
+        print("Generating chapter...")
+        chain = self.chain
+        temporary_file_path = Path(temporary_folder) / f"chapter{chapter}.txt"
+        init_chapter_prompt_txt = init_chapter_prompt[user_language].replace("XXX", str(chapter))
         versions = {}
         versions[1] = chain(
             {
-                "input": f"{txt_french} {prompt}",
+                "input": f"{init_chapter_prompt_txt} {chapter_prompt}",
                 "agent_scratchpad": [],
                 "input_documents": [
-                    Document(page_content=prompt, metadata={"source": "local"})
+                    Document(page_content=chapter_prompt, metadata={"source": "local"})
                 ],
             }
         )
@@ -85,10 +92,10 @@ class Writer:
 
         versions[2] = chain(
             {
-                "input": f"{txt_french} {prompt}",
+                "input": f"{init_chapter_prompt_txt} {chapter_prompt}",
                 "agent_scratchpad": [],
                 "input_documents": [
-                    Document(page_content=prompt, metadata={"source": "local"})
+                    Document(page_content=chapter_prompt, metadata={"source": "local"})
                 ],
             }
         )
