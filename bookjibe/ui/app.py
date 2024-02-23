@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 from bookjibe.writer import Writer, create_writer_from_book_data
 import io
 from langchain_core.messages import AIMessage, HumanMessage
+from bookjibe.ui.component import generate_drop_down_list
+
 
 app = dash.Dash(
     __name__,
@@ -33,10 +35,23 @@ def serialize_writer(writer):
     return base64.b64encode(pickle.dumps(writer)).decode("utf-8")
 
 
+def deserialize_writer(serialized_writer):
+    return pickle.loads(base64.b64decode(serialized_writer))
+
 def get_serialized_writer():
     writer = Writer()
     return serialize_writer(writer)
 
+
+def make_chapter_drop_down_list(serialized_writer):
+    """Make a drop-down list of chapters."""
+    writer = deserialize_writer(serialized_writer)
+    last_chapter_number = writer.get_last_chapter_number()
+    chapters = []
+    for i in range(1, last_chapter_number + 1):
+        chapter = f"Chapter {i}"
+        chapters.append({"label": chapter, "value": i})
+    return generate_drop_down_list("chapter_dropdown", chapters, "chapter")
 
 # writer = Writer()
 # serialized_writer = pickle.dumps(writer)
@@ -120,6 +135,7 @@ app.layout = html.Div(
                     n_clicks=0,
                     className="btn btn-danger mt-2 ml-2",
                 ),
+                html.Div(id="chapter_list"),
                 html.Br(),
                 html.Div(id="output_table"),
                 dcc.Store(id="serialized_writer", data=get_serialized_writer()),
@@ -176,6 +192,7 @@ def parse_file_contents(contents, filename):
         Output("book_upload_data", "data"),
         Output("book_data", "disabled"),
         Output("book_upload_status", "children"),
+        Output("chapter_list", "children"),
     ],
     [
         Input("init_story_button", "n_clicks"),
@@ -228,8 +245,8 @@ def disable_and_reset_buttons(
                 book_items = parse_file_contents(book_data_contents, book_data_filename)
                 # print(f"Book items: {book_items}")
                 writer = create_writer_from_book_data(book_items)
-                breakpoint()
                 serialized_writer = serialize_writer(writer)
+                dropdown_list = make_chapter_drop_down_list(serialized_writer)
                 return (
                     True,
                     "Book data uploaded",
@@ -240,6 +257,7 @@ def disable_and_reset_buttons(
                     book_data_contents,
                     True,
                     "File uploaded",
+                    dropdown_list,
                 )
             else:
                 return (
@@ -252,6 +270,7 @@ def disable_and_reset_buttons(
                     book_data_contents,
                     True,
                     "No file uploaded",
+                    [],
                 )
         elif "file_dropdown" in prop_id:
             return (
@@ -264,6 +283,7 @@ def disable_and_reset_buttons(
                 book_data_contents,
                 True,
                 "",
+                [],
             )
         elif "restart_button" in prop_id:
             return (
@@ -276,6 +296,7 @@ def disable_and_reset_buttons(
                 {},
                 False,
                 "",
+                [],
             )
     return (
         False,
@@ -287,6 +308,7 @@ def disable_and_reset_buttons(
         {},
         False,
         "",
+        [],
     )
 
 
@@ -309,49 +331,97 @@ def generate_chapter(chapter_description, current_chapter, serialized_writer):
     version2 = [random.randint(1, 100) for _ in range(len(chapter_description))]
     return version1, version2
 
+## TODO: Add a callback to update the chapter list when the generate button is clicked
+# @app.callback(
+#     Output("output_table", "children"),
+#     [Input("generate_button", "n_clicks"),
+#      Input("chapter_list", "children")],
+#     [
+#         State("chapter_description", "value"),
+#         State("current_chapter", "data"),
+#         State("serialized_writer", "data"),
+#     ],
+#     # State('number_of_chapters', 'value')]
+# )
+# def update_output(
+#     n_clicks, chapter_list, chapter_description, current_chapter, serialized_writer
+# ):  # , number_of_chapters):
+#     ctx = dash.callback_context
+#     if ctx.triggered:
+#         prop_id = ctx.triggered[0]["prop_id"]
+#         if n_clicks > 0:
+#             data = {"Chapter Description": [], "Version 1": [], "Version 2": []}
+#             v1, v2 = generate_chapter(chapter_description, serialized_writer)
+#             data["Chapter Description"].append(
+#                 f"Ch.{current_chapter}: {chapter_description}"
+#             )
+#             data["Version 1"].append(v1)
+#             data["Version 2"].append(v2)
+#             # for _ in range(number_of_chapters):
+#             #     v1, v2 = generate_book(chapter_description)
+#             #     data['Chapter Description'].append(chapter_description)
+#             #     data['Version 1'].append(v1)
+#             #     data['Version 2'].append(v2)
+#             df = pd.DataFrame(data)
+#             table = html.Table(
+#                 [
+#                     html.Thead(html.Tr([html.Th(col) for col in df.columns])),
+#                     html.Tbody(
+#                         [
+#                             html.Tr([html.Td(df.iloc[i][col]) for col in df.columns])
+#                             for i in range(len(df))
+#                         ]
+#                     ),
+#                 ],
+#                 className="table",
+#             )
+#             return table
+#         else:
+#             return ""
 
-@app.callback(
-    Output("output_table", "children"),
-    [Input("generate_button", "n_clicks")],
-    [
-        State("chapter_description", "value"),
-        State("current_chapter", "data"),
-        State("serialized_writer", "data"),
-    ],
-    # State('number_of_chapters', 'value')]
-)
-def update_output(
-    n_clicks, chapter_description, current_chapter, serialized_writer
-):  # , number_of_chapters):
-    if n_clicks > 0:
-        data = {"Chapter Description": [], "Version 1": [], "Version 2": []}
-        v1, v2 = generate_chapter(chapter_description, serialized_writer)
-        data["Chapter Description"].append(
-            f"Ch.{current_chapter}: {chapter_description}"
-        )
-        data["Version 1"].append(v1)
-        data["Version 2"].append(v2)
-        # for _ in range(number_of_chapters):
-        #     v1, v2 = generate_book(chapter_description)
-        #     data['Chapter Description'].append(chapter_description)
-        #     data['Version 1'].append(v1)
-        #     data['Version 2'].append(v2)
-        df = pd.DataFrame(data)
-        table = html.Table(
-            [
-                html.Thead(html.Tr([html.Th(col) for col in df.columns])),
-                html.Tbody(
-                    [
-                        html.Tr([html.Td(df.iloc[i][col]) for col in df.columns])
-                        for i in range(len(df))
-                    ]
-                ),
-            ],
-            className="table",
-        )
-        return table
-    else:
-        return ""
+# @app.callback(
+#     Output("output_table", "children"),
+#     [Input("generate_button", "n_clicks"),
+# ],
+#     [
+#         State("chapter_description", "value"),
+#         State("current_chapter", "data"),
+#         State("serialized_writer", "data"),
+#     ],
+#     # State('number_of_chapters', 'value')]
+# )
+# def update_output(
+#     n_clicks, chapter_description, current_chapter, serialized_writer
+# ):  # , number_of_chapters):
+#         if n_clicks > 0:
+#             data = {"Chapter Description": [], "Version 1": [], "Version 2": []}
+#             v1, v2 = generate_chapter(chapter_description, serialized_writer)
+#             data["Chapter Description"].append(
+#                 f"Ch.{current_chapter}: {chapter_description}"
+#             )
+#             data["Version 1"].append(v1)
+#             data["Version 2"].append(v2)
+#             # for _ in range(number_of_chapters):
+#             #     v1, v2 = generate_book(chapter_description)
+#             #     data['Chapter Description'].append(chapter_description)
+#             #     data['Version 1'].append(v1)
+#             #     data['Version 2'].append(v2)
+#             df = pd.DataFrame(data)
+#             table = html.Table(
+#                 [
+#                     html.Thead(html.Tr([html.Th(col) for col in df.columns])),
+#                     html.Tbody(
+#                         [
+#                             html.Tr([html.Td(df.iloc[i][col]) for col in df.columns])
+#                             for i in range(len(df))
+#                         ]
+#                     ),
+#                 ],
+#                 className="table",
+#             )
+#             return table
+#         else:
+#             return ""
 
 
 def save_book(chapters_data):

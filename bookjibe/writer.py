@@ -106,7 +106,7 @@ class Writer:
             }
         )
     
-    def get_last_chapter(self):
+    def get_last_chapter_number(self):
         messages = self.chain.memory.chat_memory.messages
         return get_last_chapter_number_from_messages(messages)
 
@@ -120,6 +120,14 @@ class Writer:
                 chapters.append(message.name)
         return chapters
 
+    def get_chapter(self, chapter_number):
+        """Get the chapter with the given number from the messages. If the chapter does not exist, return None."""
+        messages = self.chain.memory.chat_memory.messages
+        for message in messages:
+            if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
+                return {"name": message.name, "content": message.content}
+        return None
+    
     def generate_chapter(self, chapter_prompt, chapter, temporary_file_path=None):
         """Generate the next chapter of the book.
 
