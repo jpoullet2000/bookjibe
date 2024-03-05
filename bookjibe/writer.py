@@ -10,6 +10,8 @@ import copy
 from pprint import pprint
 from typing import Union
 import json
+import base64
+import pickle
 from bookjibe.settings import init_prompt_folder, user_language, temporary_folder
 from bookjibe.utils import (
     get_prompt,
@@ -63,6 +65,18 @@ def create_writer_from_book_data(book_data):
             AIMessage(name=item_name, content=item_value["ai_message"])
         )
     return writer
+
+def serialize_writer(writer):
+    return base64.b64encode(pickle.dumps(writer)).decode("utf-8")
+
+
+def deserialize_writer(serialized_writer):
+    return pickle.loads(base64.b64decode(serialized_writer))
+
+def get_serialized_writer():
+    writer = Writer()
+    return serialize_writer(writer)
+
 
 
 class Writer:
@@ -119,6 +133,22 @@ class Writer:
             if isinstance(message, AIMessage):
                 chapters.append(message.name)
         return chapters
+
+    def get_chapter_ai_message(self, chapter_number):
+        """Get the AI message of the chapter with the given number from the messages. If the chapter does not exist, return None."""
+        messages = self.chain.memory.chat_memory.messages
+        for message in messages:
+            if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
+                return message.content
+        return None
+    
+    def get_chapter_human_message(self, chapter_number):
+        """Get the human message of the chapter with the given number from the messages. If the chapter does not exist, return None."""
+        messages = self.chain.memory.chat_memory.messages
+        for message in messages:
+            if isinstance(message, HumanMessage) and message.name == f"chapter{chapter_number}":
+                return message.content
+        return None
 
     def get_chapter(self, chapter_number):
         """Get the chapter with the given number from the messages. If the chapter does not exist, return None."""

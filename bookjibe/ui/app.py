@@ -8,10 +8,16 @@ import base64
 import pandas as pd
 from pathlib import Path
 from dotenv import load_dotenv
-from bookjibe.writer import Writer, create_writer_from_book_data
+from bookjibe.writer import (
+    Writer, 
+    create_writer_from_book_data,
+    serialize_writer,
+    deserialize_writer,
+    get_serialized_writer
+)
 import io
 from langchain_core.messages import AIMessage, HumanMessage
-from bookjibe.ui.component import generate_drop_down_list
+from bookjibe.ui.component import generate_drop_down_list, render_chapter_versions
 
 
 app = dash.Dash(
@@ -31,16 +37,6 @@ prompt_files = [
 select_prompt_file_txt = "Select a prompt file to start the story"
 
 
-def serialize_writer(writer):
-    return base64.b64encode(pickle.dumps(writer)).decode("utf-8")
-
-
-def deserialize_writer(serialized_writer):
-    return pickle.loads(base64.b64decode(serialized_writer))
-
-def get_serialized_writer():
-    writer = Writer()
-    return serialize_writer(writer)
 
 
 def make_chapter_drop_down_list(serialized_writer):
@@ -53,8 +49,7 @@ def make_chapter_drop_down_list(serialized_writer):
         chapters.append({"label": chapter, "value": i})
     return generate_drop_down_list("chapter_dropdown", chapters, "chapter")
 
-# writer = Writer()
-# serialized_writer = pickle.dumps(writer)
+
 
 app.layout = html.Div(
     [
@@ -193,6 +188,7 @@ def parse_file_contents(contents, filename):
         Output("book_data", "disabled"),
         Output("book_upload_status", "children"),
         Output("chapter_list", "children"),
+        Output("output_table", "children")
     ],
     [
         Input("init_story_button", "n_clicks"),
@@ -239,6 +235,8 @@ def disable_and_reset_buttons(
                 book_data_contents,
                 True,
                 "",
+                [],
+                None
             )
         elif "book_data" in prop_id:
             if book_data_contents is not None:
@@ -258,6 +256,7 @@ def disable_and_reset_buttons(
                     True,
                     "File uploaded",
                     dropdown_list,
+                    None
                 )
             else:
                 return (
@@ -271,7 +270,23 @@ def disable_and_reset_buttons(
                     True,
                     "No file uploaded",
                     [],
+                    None
                 )
+        elif "chapter_list" in prop_id:
+            chapter_table = render_chapter_versions(writer, dropdown_list) 
+            return (
+                False,
+                f"You have selected the file: {file_dropdown}",
+                file_dropdown,
+                book_description,
+                chapter_description,
+                serialized_writer,
+                book_data_contents,
+                True,
+                "",
+                [],
+                chapter_table
+            )
         elif "file_dropdown" in prop_id:
             return (
                 False,
@@ -284,6 +299,7 @@ def disable_and_reset_buttons(
                 True,
                 "",
                 [],
+                None
             )
         elif "restart_button" in prop_id:
             return (
@@ -297,6 +313,7 @@ def disable_and_reset_buttons(
                 False,
                 "",
                 [],
+                None
             )
     return (
         False,
@@ -309,6 +326,7 @@ def disable_and_reset_buttons(
         False,
         "",
         [],
+        None
     )
 
 
