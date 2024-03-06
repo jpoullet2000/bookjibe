@@ -47,7 +47,11 @@ def make_chapter_drop_down_list(serialized_writer):
     for i in range(1, last_chapter_number + 1):
         chapter = f"Chapter {i}"
         chapters.append({"label": chapter, "value": i})
-    return generate_drop_down_list("chapter_dropdown", chapters, "chapter")
+    return generate_drop_down_list(
+        id="chapter_dropdown", 
+        item_list=chapters, 
+        item_label="chapter"
+    )
 
 
 
@@ -130,7 +134,7 @@ app.layout = html.Div(
                     n_clicks=0,
                     className="btn btn-danger mt-2 ml-2",
                 ),
-                html.Div(id="chapter_list"),
+                html.Div(id="chapter_list", children=[]),
                 html.Br(),
                 html.Div(id="output_table"),
                 dcc.Store(id="serialized_writer", data=get_serialized_writer()),
@@ -195,6 +199,7 @@ def parse_file_contents(contents, filename):
         Input("restart_button", "n_clicks"),
         Input("file_dropdown", "value"),
         Input("book_data", "contents"),
+        Input("chapter_dropdown", "value"),
     ],
     [
         State("book_description", "value"),
@@ -209,6 +214,7 @@ def disable_and_reset_buttons(
     restart_clicks,
     file_dropdown,
     book_data_contents,
+    chapter_dropdown,
     book_description,
     init_prompt_file,
     chapter_description,
@@ -245,6 +251,8 @@ def disable_and_reset_buttons(
                 writer = create_writer_from_book_data(book_items)
                 serialized_writer = serialize_writer(writer)
                 dropdown_list = make_chapter_drop_down_list(serialized_writer)
+                breakpoint()
+                #app.layout.append(dropdown_list)
                 return (
                     True,
                     "Book data uploaded",
@@ -272,11 +280,11 @@ def disable_and_reset_buttons(
                     [],
                     None
                 )
-        elif "chapter_list" in prop_id:
-            chapter_table = render_chapter_versions(writer, dropdown_list) 
+        elif "chapter_dropdown" in prop_id:
+            chapter_table = render_chapter_versions(writer, chapter_dropdown)
             return (
                 False,
-                f"You have selected the file: {file_dropdown}",
+                f"You have selected chapter {chapter_dropdown}",
                 file_dropdown,
                 book_description,
                 chapter_description,
