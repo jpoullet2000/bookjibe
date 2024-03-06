@@ -199,7 +199,6 @@ def parse_file_contents(contents, filename):
         Input("restart_button", "n_clicks"),
         Input("file_dropdown", "value"),
         Input("book_data", "contents"),
-        Input("chapter_dropdown", "value"),
     ],
     [
         State("book_description", "value"),
@@ -214,7 +213,6 @@ def disable_and_reset_buttons(
     restart_clicks,
     file_dropdown,
     book_data_contents,
-    chapter_dropdown,
     book_description,
     init_prompt_file,
     chapter_description,
