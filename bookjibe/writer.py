@@ -178,6 +178,48 @@ class Writer:
         return file_path
 
     
+    def generate_chapter_versions(self, chapter_prompt, chapter, number_of_versions=2):
+        """Generate versions for the next chapter of the book.
+        
+        Args:
+            chapter_prompt (str): The prompt to be used for the chapter.
+            chapter (int): The number of the current chapter.
+        """
+        chain = self.chain
+        init_chapter_prompt_txt = init_chapter_prompt[user_language].replace(
+            "XXX", str(chapter)
+        )
+        versions = {}
+        ai_messages = {}
+        human_messages = {}
+
+        for i in range(1, number_of_versions + 1):
+            versions[i] = chain.invoke(
+                {
+                    "input": f"{init_chapter_prompt_txt} {chapter_prompt}",
+                    "agent_scratchpad": [],
+                    "input_documents": [
+                        Document(page_content=chapter_prompt, metadata={"source": "local"})
+                    ],
+                }
+            )
+            ai_message = chain.memory.chat_memory.messages.pop(-1)
+            ai_messages[i] = ai_message.content
+            human_message = chain.memory.chat_memory.messages.pop(-1) 
+            human_messages[i] = human_message.content
+
+        return versions, ai_messages, human_messages
+
+    def add_chapter_to_book_as_messages(self, chapter_number, human_message, ai_message): 
+        """Add a chapter to the book as messages."""
+        self.chain.memory.chat_memory.messages.append(
+            HumanMessage(name=f"chapter{chapter_number}", content=human_message)
+        )
+        self.chain.memory.chat_memory.messages.append(
+            AIMessage(name=f"chapter{chapter_number}", content=ai_message)
+        )
+
+
     def generate_chapter(self, chapter_prompt, chapter, temporary_file_path=None):
         """Generate the next chapter of the book.
 
