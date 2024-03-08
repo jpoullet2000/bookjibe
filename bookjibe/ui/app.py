@@ -9,15 +9,13 @@ import pandas as pd
 from pathlib import Path
 from dotenv import load_dotenv
 from bookjibe.writer import (
-    Writer, 
     create_writer_from_book_data,
     serialize_writer,
     deserialize_writer,
     get_serialized_writer
 )
-import io
-from langchain_core.messages import AIMessage, HumanMessage
-from bookjibe.ui.component import generate_drop_down_list, render_chapter_versions
+from bookjibe.utils import parse_file_contents
+from bookjibe.ui.component import generate_drop_down_list
 
 
 app = dash.Dash(
@@ -37,8 +35,6 @@ prompt_files = [
 select_prompt_file_txt = "Select a prompt file to start the story"
 
 
-
-
 def make_chapter_drop_down_list(serialized_writer):
     """Make a drop-down list of chapters."""
     writer = deserialize_writer(serialized_writer)
@@ -52,7 +48,6 @@ def make_chapter_drop_down_list(serialized_writer):
         item_list=chapters, 
         item_label="chapter"
     )
-
 
 
 app.layout = html.Div(
@@ -139,45 +134,11 @@ app.layout = html.Div(
                 html.Div(id="output_table"),
                 dcc.Store(id="serialized_writer", data=get_serialized_writer()),
                 dcc.Store(id="current_chapter", data=1),
-                # dcc.Store(id="serialized_writer", data=serialized_writer),
             ],
             className="container",
         ),
     ]
 )
-
-
-def parse_file_contents(contents, filename):
-    """Parse the contents of a JSON file."""
-    content_type, content_string = contents.split(",")
-    decoded = base64.b64decode(content_string)
-    try:
-        if "json" in filename:
-            # Assume that the user uploaded a JSON file
-            return json.loads(decoded)
-        elif "csv" in filename:
-            # Assume that the user uploaded a CSV file
-            return pd.read_csv(io.StringIO(decoded.decode("utf-8")))
-    except Exception as e:
-        print(e)
-        return html.Div(["There was an error processing this file."])
-
-
-# @app.callback(Output('book_upload_data', 'data'),
-#               Output('book_data', 'disabled'),
-#               Output('book_upload_status', 'children'),
-#               Output("serialized_writer", "data"),
-#               Input('book_data', 'contents'),
-#               State('book_data', 'filename'),
-#               State("serialized_writer", "data")
-#               )
-# def update_output(contents, filename, serialized_writer):
-#     if contents is not None:
-#         children = parse_file_contents(contents, filename)
-#         print(f"Children: {children}")
-#         serialized_writer = serialize_writer(create_writer_from_book_data(children))
-#         return children, True, f"File {filename} uploaded", serialized_writer
-#     return {}, False, "", serialized_writer
 
 
 @app.callback(
@@ -245,6 +206,20 @@ def disable_and_reset_buttons(
         elif "book_data" in prop_id:
             if book_data_contents is not None:
                 book_items = parse_file_contents(book_data_contents, book_data_filename)
+                if book_items is None:
+                    return (
+                        False,
+                        "No book data uploaded",
+                        None,
+                        book_description,
+                        chapter_description,
+                        serialized_writer,
+                        book_data_contents,
+                        True,
+                        "File not uploaded",
+                        [],
+                        None
+                    )
                 # print(f"Book items: {book_items}")
                 writer = create_writer_from_book_data(book_items)
                 serialized_writer = serialize_writer(writer)
@@ -278,21 +253,6 @@ def disable_and_reset_buttons(
                     [],
                     None
                 )
-        elif "chapter_dropdown" in prop_id:
-            chapter_table = render_chapter_versions(writer, chapter_dropdown)
-            return (
-                False,
-                f"You have selected chapter {chapter_dropdown}",
-                file_dropdown,
-                book_description,
-                chapter_description,
-                serialized_writer,
-                book_data_contents,
-                True,
-                "",
-                [],
-                chapter_table
-            )
         elif "file_dropdown" in prop_id:
             return (
                 False,

@@ -77,6 +77,9 @@ def get_serialized_writer():
     writer = Writer()
     return serialize_writer(writer)
 
+def get_writer():
+    writer = Writer()
+    return writer
 
 
 class Writer:
@@ -157,6 +160,23 @@ class Writer:
             if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
                 return {"name": message.name, "content": message.content}
         return None
+    
+    def save_book_to_file(self, file_path: Union[str, Path]):
+        """Save the book to a file.
+
+        Args:
+            file_path (str): The path to the file where the book will be saved.
+            chain (Chain): The chain that was used to generate the book.
+
+        """
+        book = self.chain.memory.chat_memory.messages
+        chapters = [i.content for i in book if isinstance(i, AIMessage)]
+
+        with open(file_path, "w") as f:
+            f.write("\n".join(chapters))
+
+        return file_path
+
     
     def generate_chapter(self, chapter_prompt, chapter, temporary_file_path=None):
         """Generate the next chapter of the book.
@@ -327,21 +347,7 @@ class Writer:
             chain, chapter = generate_next_chapter(chain, prompt, chapter)
         return chain
 
-    def save_book_to_file(file_path: Union[str, Path], chain):
-        """Save the book to a file.
 
-        Args:
-            file_path (str): The path to the file where the book will be saved.
-            chain (Chain): The chain that was used to generate the book.
-
-        """
-        book = chain.memory.chat_memory.messages
-        chapters = [i.content for i in book if isinstance(i, AIMessage)]
-
-        with open(file_path, "w") as f:
-            f.write("\n".join(chapters))
-
-        return file_path
 
     def init_chain(
         human_prompt_file: Union[str, Path], memory: ConversationBufferMemory = None

@@ -1,5 +1,9 @@
 from typing import Union
 from pathlib import Path
+import base64
+import pandas as pd
+import json
+import io
 from langchain import hub
 from langchain_core.prompts.chat import ChatPromptTemplate
 from langchain.memory import ConversationBufferMemory
@@ -74,3 +78,17 @@ def get_last_chapter_number_from_messages(messages):
     else:
         return len([message for message in messages if message["type"] == "AIMessage"]) - 1
 
+def parse_file_contents(contents, filename):
+    """Parse the contents of a JSON file."""
+    content_type, content_string = contents.split(",")
+    decoded = base64.b64decode(content_string)
+    try:
+        if "json" in filename:
+            # Assume that the user uploaded a JSON file
+            return json.loads(decoded)
+        elif "csv" in filename:
+            # Assume that the user uploaded a CSV file
+            return pd.read_csv(io.StringIO(decoded.decode("utf-8")))
+    except Exception as e:
+        print(e)
+        return None
