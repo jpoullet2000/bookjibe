@@ -18,7 +18,7 @@ from bookjibe.writer import (
 )
 from bookjibe.utils import parse_file_contents
 from bookjibe.ui.component import make_chapter_drop_down_list, render_chapter_versions
-
+from bookjibe.ui.book_initializer import get_book_initializer_components
 
 app = dash.Dash(
     __name__,
@@ -38,6 +38,11 @@ prompt_files = [
 select_prompt_file_txt = "Select a prompt file to start the story"
 
 
+collapse_book_initializer = html.Div([
+    dbc.Button("Book Initializer", id="collapse_book_initializer_button", className="mb-3", color="primary"),
+    dbc.Collapse(get_book_initializer_components(), id="collapse_book_initializer"),
+])
+
 app.layout = html.Div(
     [
         html.H1("Book Generator", className="text-center my-4"),
@@ -47,51 +52,52 @@ app.layout = html.Div(
                 # The file is a json file with the structure defined in method `bookjibe.writer.create_writer_from_book_data`"
                 dcc.Store(id="serialized_writer", data=get_serialized_writer()),
                 dcc.Store(id="current_chapter", data=1),
-                dcc.Upload(
-                    id="book_data",
-                    children=html.Div(
-                        ["Book Load: Drag and Drop or ", html.A("Select Files")]
-                    ),
-                    style={
-                        "width": "60%",
-                        "height": "30px",
-                        "lineHeight": "30px",
-                        "borderWidth": "1px",
-                        "borderStyle": "dashed",
-                        "borderRadius": "5px",
-                        "textAlign": "center",
-                        "margin": "5px",
-                    },
-                    # Allow multiple files to be uploaded
-                    multiple=False,
-                ),
-                dcc.Store(id="book_upload_data", data={}),
-                html.Div(id="book_upload_status"),
-                html.P("What kind of book do you want to write?"),
-                dcc.Dropdown(
-                    id="prompt_file_dropdown",
-                    options=[{"label": file, "value": file} for file in prompt_files],
-                    placeholder="Select a file",
-                ),
-                html.Div(id="init_prompt_file_text", children=select_prompt_file_txt),
-                dcc.Input(
-                    id="book_description",
-                    type="text",
-                    placeholder="Book description",
-                    className="form-control",
-                ),
-                dcc.Loading(
-                    id="loading",
-                    type="default",
-                    children=[
-                        html.Button(
-                            "Init story",
-                            id="init_story_button",
-                            n_clicks=0,
-                            className="btn btn-primary mt-2",
-                        )
-                    ],
-                ),
+                collapse_book_initializer,
+                # dcc.Upload(
+                #     id="book_data",
+                #     children=html.Div(
+                #         ["Book Load: Drag and Drop or ", html.A("Select Files")]
+                #     ),
+                #     style={
+                #         "width": "60%",
+                #         "height": "30px",
+                #         "lineHeight": "30px",
+                #         "borderWidth": "1px",
+                #         "borderStyle": "dashed",
+                #         "borderRadius": "5px",
+                #         "textAlign": "center",
+                #         "margin": "5px",
+                #     },
+                #     # Allow multiple files to be uploaded
+                #     multiple=False,
+                # ),
+                # dcc.Store(id="book_upload_data", data={}),
+                # html.Div(id="book_upload_status"),
+                # html.P("What kind of book do you want to write?"),
+                # dcc.Dropdown(
+                #     id="prompt_file_dropdown",
+                #     options=[{"label": file, "value": file} for file in prompt_files],
+                #     placeholder="Select a file",
+                # ),
+                # html.Div(id="init_prompt_file_text", children=select_prompt_file_txt),
+                # dcc.Input(
+                #     id="book_description",
+                #     type="text",
+                #     placeholder="Book description",
+                #     className="form-control",
+                # ),
+                # dcc.Loading(
+                #     id="loading",
+                #     type="default",
+                #     children=[
+                #         html.Button(
+                #             "Init story",
+                #             id="init_story_button",
+                #             n_clicks=0,
+                #             className="btn btn-primary mt-2",
+                #         )
+                #     ],
+                # ),
             ],
             className="container text-center my-4",
         ),
@@ -176,6 +182,15 @@ app.layout = html.Div(
     ]
 )
 
+@app.callback(
+    Output("collapse_book_initializer", "is_open"),
+    [Input("collapse_book_initializer_button", "n_clicks")],
+    [State("collapse_book_initializer", "is_open")]
+)
+def toggle_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
 
 @app.callback(
     Output("book_upload_status", "children"),
@@ -339,7 +354,6 @@ def return_value(card1_clicks, card2_clicks, serialized_writer, versions_dict):
 )
 def update_chapter_list(serialized_writer):
     writer = deserialize_writer(serialized_writer=serialized_writer)
-    breakpoint()
     return make_chapter_drop_down_list(writer)
 
 if __name__ == "__main__":
