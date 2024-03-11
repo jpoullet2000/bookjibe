@@ -12,7 +12,7 @@ from bookjibe.writer import (
     create_writer_from_book_data,
     serialize_writer,
     deserialize_writer,
-    get_serialized_writer
+    get_serialized_writer,
 )
 from bookjibe.utils import parse_file_contents
 from bookjibe.ui.component import generate_drop_down_list
@@ -44,9 +44,7 @@ def make_chapter_drop_down_list(serialized_writer):
         chapter = f"Chapter {i}"
         chapters.append({"label": chapter, "value": i})
     return generate_drop_down_list(
-        id="chapter_dropdown", 
-        item_list=chapters, 
-        item_label="chapter"
+        id="chapter_dropdown", item_list=chapters, item_label="chapter"
     )
 
 
@@ -153,7 +151,7 @@ app.layout = html.Div(
         Output("book_data", "disabled"),
         Output("book_upload_status", "children"),
         Output("chapter_list", "children"),
-        Output("output_table", "children")
+        Output("output_table", "children"),
     ],
     [
         Input("init_story_button", "n_clicks"),
@@ -201,7 +199,7 @@ def disable_and_reset_buttons(
                 True,
                 "",
                 [],
-                None
+                None,
             )
         elif "book_data" in prop_id:
             if book_data_contents is not None:
@@ -218,14 +216,14 @@ def disable_and_reset_buttons(
                         True,
                         "File not uploaded",
                         [],
-                        None
+                        None,
                     )
                 # print(f"Book items: {book_items}")
                 writer = create_writer_from_book_data(book_items)
                 serialized_writer = serialize_writer(writer)
                 dropdown_list = make_chapter_drop_down_list(serialized_writer)
                 breakpoint()
-                #app.layout.append(dropdown_list)
+                # app.layout.append(dropdown_list)
                 return (
                     True,
                     "Book data uploaded",
@@ -237,7 +235,7 @@ def disable_and_reset_buttons(
                     True,
                     "File uploaded",
                     dropdown_list,
-                    None
+                    None,
                 )
             else:
                 return (
@@ -251,7 +249,7 @@ def disable_and_reset_buttons(
                     True,
                     "No file uploaded",
                     [],
-                    None
+                    None,
                 )
         elif "file_dropdown" in prop_id:
             return (
@@ -265,7 +263,7 @@ def disable_and_reset_buttons(
                 True,
                 "",
                 [],
-                None
+                None,
             )
         elif "restart_button" in prop_id:
             return (
@@ -279,7 +277,7 @@ def disable_and_reset_buttons(
                 False,
                 "",
                 [],
-                None
+                None,
             )
     return (
         False,
@@ -292,7 +290,7 @@ def disable_and_reset_buttons(
         False,
         "",
         [],
-        None
+        None,
     )
 
 
@@ -314,6 +312,7 @@ def generate_chapter(chapter_description, current_chapter, serialized_writer):
     version1 = [random.randint(1, 100) for _ in range(len(chapter_description))]
     version2 = [random.randint(1, 100) for _ in range(len(chapter_description))]
     return version1, version2
+
 
 ## TODO: Add a callback to update the chapter list when the generate button is clicked
 # @app.callback(
