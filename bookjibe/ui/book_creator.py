@@ -1,3 +1,4 @@
+import dash
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State
@@ -259,3 +260,15 @@ def build_book_creator_callbacks(app):
         return make_chapter_drop_down_list(writer)
 
 
+
+    @app.callback(
+        Output("serialized_writer", "data", allow_duplicate=True),
+        Output("chapter_list", "children", allow_duplicate=True),
+        Input("restart_button", "n_clicks"),
+    )
+    def restart_book(n_clicks):
+        if n_clicks > 0:
+            writer = get_writer()
+            return serialize_writer(writer), make_chapter_drop_down_list(writer)
+        else:
+            return dash.no_update, dash.no_update

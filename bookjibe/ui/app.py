@@ -132,6 +132,8 @@ app.layout = html.Div(
                 html.Div(id="output_table"),
                 dcc.Store(id="serialized_writer", data=get_serialized_writer()),
                 dcc.Store(id="current_chapter", data=1),
+                # TODO: create a hidden button that would restart the book initialization
+                # html.Button('Restart book init', id='restart_book_init_button', n_clicks=0, style={'display': 'none'}),
             ],
             className="container",
         ),
