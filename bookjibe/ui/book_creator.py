@@ -130,6 +130,7 @@ def build_book_creator_callbacks(app):
     def save_book(n_clicks, serialized_writer):
         if n_clicks > 0:
             writer = deserialize_writer(serialized_writer=serialized_writer)
+            writer.save_history_to_file("mybook.json")
             writer.save_book_to_file("mybook.txt")
             return True
         else:
@@ -175,6 +176,17 @@ def build_book_creator_callbacks(app):
             return json.dumps(versions_dict)
         else:
             return {}
+
+    @app.callback(
+        Output("save_book_button", "disabled", allow_duplicate=True),
+        Input("generate_button", "n_clicks"),
+    )
+    def enable_save_button(n_clicks):
+        if n_clicks > 0:
+            return False
+        else:
+            return True
+
 
 
     # Define callback to close the popup

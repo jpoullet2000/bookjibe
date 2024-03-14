@@ -178,6 +178,48 @@ class Writer:
         return file_path
 
     
+    def save_history_to_file(
+            self, 
+            file_path: Union[str, Path], 
+    ):
+        """Save the conversation history to a file.
+
+        It should keep the messages in the same order as they were generated.
+        It should include the chapter, the human message, and the AI message.
+
+        Args:
+            file_path (str): The path to the file where the history will be saved.
+            chain_memory (ConversationBufferMemory): The memory of the chain that contains the conversation history.
+
+        Example:
+        {
+            "chapter1": {
+                "human_message": "The human message",
+                "ai_message": "The AI message"
+            },
+            "chapter2": {
+                "human_message": "The human message",
+                "ai_message": "The AI message"
+            }
+        }
+        """
+        history = {}
+        messages = self.chain.memory.chat_memory.messages
+        chapter_counter = 1
+        for i, message in enumerate(messages):
+            if i <= 2: # skip the first two messages which are the initial prompt and the first AI message, it describes the story but it is not the story itself.
+                continue 
+            if isinstance(message, AIMessage):
+                history[f"chapter{chapter_counter}"] = {
+                    "human_message": messages[i - 1].content,
+                    "ai_message": message.content,
+                }
+                chapter_counter += 1
+        with open(file_path, "w") as f:
+            json.dump(history, f)
+        # with open(file_path, "w") as f:
+        #     f.write(history)
+
     def generate_chapter_versions(self, chapter_prompt, chapter, number_of_versions=2):
         """Generate versions for the next chapter of the book.
         
@@ -293,44 +335,44 @@ class Writer:
             next_chapter = chapter
         return chain, next_chapter
 
-    def save_history_to_file(
-        file_path: Union[str, Path], chain_memory: ConversationBufferMemory
-    ):
-        """Save the conversation history to a file.
+    # def save_history_to_file(
+    #     file_path: Union[str, Path], chain_memory: ConversationBufferMemory
+    # ):
+    #     """Save the conversation history to a file.
 
-        It should keep the messages in the same order as they were generated.
-        It should include the chapter, the human message, and the AI message.
+    #     It should keep the messages in the same order as they were generated.
+    #     It should include the chapter, the human message, and the AI message.
 
-        Args:
-            file_path (str): The path to the file where the history will be saved.
-            chain_memory (ConversationBufferMemory): The memory of the chain that contains the conversation history.
+    #     Args:
+    #         file_path (str): The path to the file where the history will be saved.
+    #         chain_memory (ConversationBufferMemory): The memory of the chain that contains the conversation history.
 
-        Example:
-        {
-            "chapter1": {
-                "human_message": "The human message",
-                "ai_message": "The AI message"
-            },
-            "chapter2": {
-                "human_message": "The human message",
-                "ai_message": "The AI message"
-            }
-        }
-        """
-        history = {}
-        messages = chain_memory.chat_memory.messages
-        for i, message in enumerate(messages):
-            chapter_counter = 1
-            if isinstance(message, AIMessage) and i > 2:
-                history[f"chapter{chapter_counter}"] = {
-                    "human_message": messages[i - 1].content,
-                    "ai_message": message.content,
-                }
-                chapter_counter += 1
-        with open(file_path, "w") as f:
-            json.dump(history, f)
-        # with open(file_path, "w") as f:
-        #     f.write(history)
+    #     Example:
+    #     {
+    #         "chapter1": {
+    #             "human_message": "The human message",
+    #             "ai_message": "The AI message"
+    #         },
+    #         "chapter2": {
+    #             "human_message": "The human message",
+    #             "ai_message": "The AI message"
+    #         }
+    #     }
+    #     """
+    #     history = {}
+    #     messages = chain_memory.chat_memory.messages
+    #     for i, message in enumerate(messages):
+    #         chapter_counter = 1
+    #         if isinstance(message, AIMessage) and i > 2:
+    #             history[f"chapter{chapter_counter}"] = {
+    #                 "human_message": messages[i - 1].content,
+    #                 "ai_message": message.content,
+    #             }
+    #             chapter_counter += 1
+    #     with open(file_path, "w") as f:
+    #         json.dump(history, f)
+    #     # with open(file_path, "w") as f:
+    #     #     f.write(history)
 
     def update_chain_memory_with_messages_from_file(
         file_path: Union[str, Path],
