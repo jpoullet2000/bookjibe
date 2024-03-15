@@ -240,7 +240,6 @@ def build_book_creator_callbacks(app):
             selected_version = 0
             return serialized_writer, selected_version
         writer = deserialize_writer(serialized_writer=serialized_writer)
-        breakpoint()
         writer.add_chapter_to_book_as_messages(
             chapter_number=writer.get_last_chapter_number() + 1,
             human_message=human_message,

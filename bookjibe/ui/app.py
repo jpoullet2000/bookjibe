@@ -224,7 +224,6 @@ def disable_and_reset_buttons(
                 writer = create_writer_from_book_data(book_items)
                 serialized_writer = serialize_writer(writer)
                 dropdown_list = make_chapter_drop_down_list(serialized_writer)
-                breakpoint()
                 # app.layout.append(dropdown_list)
                 return (
                     True,

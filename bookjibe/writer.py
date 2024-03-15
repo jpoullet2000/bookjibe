@@ -207,8 +207,12 @@ class Writer:
         messages = self.chain.memory.chat_memory.messages
         chapter_counter = 1
         for i, message in enumerate(messages):
-            if i <= 2: # skip the first two messages which are the initial prompt and the first AI message, it describes the story but it is not the story itself.
-                continue 
+            if i <= 2 and isinstance(message, AIMessage): # skip the first two messages which are the initial prompt and the first AI message, it describes the story but it is not the story itself.
+                history["synopsys"] = {
+                    "human_message": messages[i - 1].content,
+                    "ai_message": message.content,
+                }
+                 
             if isinstance(message, AIMessage):
                 history[f"chapter{chapter_counter}"] = {
                     "human_message": messages[i - 1].content,
@@ -374,23 +378,23 @@ class Writer:
             chain_memory.chat_memory.messages.append(AIMessage(messages["ai_message"]))
         return chain_memory
 
-    def generate_book(chain, number_of_chapters, starting_chapter=1):
-        """Generate a book using a chain.
+    # def generate_book(chain, number_of_chapters, starting_chapter=1):
+    #     """Generate a book using a chain.
 
-        Args:
-            chain (Chain): The chain to be used to generate the book.
-            number_of_chapters (int): The number of chapters in the book.
+    #     Args:
+    #         chain (Chain): The chain to be used to generate the book.
+    #         number_of_chapters (int): The number of chapters in the book.
 
-        Returns:
-            list: The list of chapters in the book.
-        """
-        chapter = starting_chapter
-        while chapter <= number_of_chapters:
-            prompt = input(
-                f"Want to add something specific for this chapter {chapter}: "
-            )
-            chain, chapter = generate_next_chapter(chain, prompt, chapter)
-        return chain
+    #     Returns:
+    #         list: The list of chapters in the book.
+    #     """
+    #     chapter = starting_chapter
+    #     while chapter <= number_of_chapters:
+    #         prompt = input(
+    #             f"Want to add something specific for this chapter {chapter}: "
+    #         )
+    #         chain, chapter = generate_next_chapter(chain, prompt, chapter)
+    #     return chain
 
 
 
