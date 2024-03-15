@@ -220,6 +220,8 @@ def build_book_creator_callbacks(app):
     @app.callback(
         Output("serialized_writer", "data"),
         Output("selected_version", "data"),
+        Output("version1_button", "n_clicks"),
+        Output("version2_button", "n_clicks"),
         [Input("version1_button", "n_clicks"), Input("version2_button", "n_clicks")],
         State("serialized_writer", "data"),
         State("versions_dict", "data"),
@@ -238,14 +240,14 @@ def build_book_creator_callbacks(app):
             selected_version = 2
         else:
             selected_version = 0
-            return serialized_writer, selected_version
+            return serialized_writer, selected_version, 0, 0
         writer = deserialize_writer(serialized_writer=serialized_writer)
         writer.add_chapter_to_book_as_messages(
             chapter_number=writer.get_last_chapter_number() + 1,
             human_message=human_message,
             ai_message=ai_message,
         )
-        return serialize_writer(writer), selected_version
+        return serialize_writer(writer), selected_version, 0, 0
 
 
     @app.callback(

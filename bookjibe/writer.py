@@ -193,6 +193,10 @@ class Writer:
 
         Example:
         {
+            "synopsys": {
+                "human_message": "The human message",
+                "ai_message": "The AI message"
+            },
             "chapter1": {
                 "human_message": "The human message",
                 "ai_message": "The AI message"
@@ -207,7 +211,7 @@ class Writer:
         messages = self.chain.memory.chat_memory.messages
         chapter_counter = 1
         for i, message in enumerate(messages):
-            if i <= 2 and isinstance(message, AIMessage): # skip the first two messages which are the initial prompt and the first AI message, it describes the story but it is not the story itself.
+            if i < 2 and isinstance(message, AIMessage): # skip the first two messages which are the initial prompt and the first AI message, it describes the story but it is not the story itself.
                 history["synopsys"] = {
                     "human_message": messages[i - 1].content,
                     "ai_message": message.content,
