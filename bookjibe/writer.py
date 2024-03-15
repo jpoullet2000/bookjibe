@@ -77,6 +77,9 @@ def get_serialized_writer():
     writer = Writer()
     return serialize_writer(writer)
 
+def get_writer():
+    writer = Writer()
+    return writer
 
 
 class Writer:
@@ -158,6 +161,107 @@ class Writer:
                 return {"name": message.name, "content": message.content}
         return None
     
+    def save_book_to_file(self, file_path: Union[str, Path]):
+        """Save the book to a file.
+
+        Args:
+            file_path (str): The path to the file where the book will be saved.
+            chain (Chain): The chain that was used to generate the book.
+
+        """
+        book = self.chain.memory.chat_memory.messages
+        chapters = [i.content for i in book if isinstance(i, AIMessage)]
+
+        with open(file_path, "w") as f:
+            f.write("\n".join(chapters))
+
+        return file_path
+
+    
+    def save_history_to_file(
+            self, 
+            file_path: Union[str, Path], 
+    ):
+        """Save the conversation history to a file.
+
+        It should keep the messages in the same order as they were generated.
+        It should include the chapter, the human message, and the AI message.
+
+        Args:
+            file_path (str): The path to the file where the history will be saved.
+            chain_memory (ConversationBufferMemory): The memory of the chain that contains the conversation history.
+
+        Example:
+        {
+            "chapter1": {
+                "human_message": "The human message",
+                "ai_message": "The AI message"
+            },
+            "chapter2": {
+                "human_message": "The human message",
+                "ai_message": "The AI message"
+            }
+        }
+        """
+        history = {}
+        messages = self.chain.memory.chat_memory.messages
+        chapter_counter = 1
+        for i, message in enumerate(messages):
+            if i <= 2: # skip the first two messages which are the initial prompt and the first AI message, it describes the story but it is not the story itself.
+                continue 
+            if isinstance(message, AIMessage):
+                history[f"chapter{chapter_counter}"] = {
+                    "human_message": messages[i - 1].content,
+                    "ai_message": message.content,
+                }
+                chapter_counter += 1
+        with open(file_path, "w") as f:
+            json.dump(history, f)
+        # with open(file_path, "w") as f:
+        #     f.write(history)
+
+    def generate_chapter_versions(self, chapter_prompt, chapter, number_of_versions=2):
+        """Generate versions for the next chapter of the book.
+        
+        Args:
+            chapter_prompt (str): The prompt to be used for the chapter.
+            chapter (int): The number of the current chapter.
+        """
+        chain = self.chain
+        init_chapter_prompt_txt = init_chapter_prompt[user_language].replace(
+            "XXX", str(chapter)
+        )
+        versions = {}
+        ai_messages = {}
+        human_messages = {}
+
+        for i in range(1, number_of_versions + 1):
+            versions[i] = chain.invoke(
+                {
+                    "input": f"{init_chapter_prompt_txt} {chapter_prompt}",
+                    "agent_scratchpad": [],
+                    "input_documents": [
+                        Document(page_content=chapter_prompt, metadata={"source": "local"})
+                    ],
+                }
+            )
+            ai_message = chain.memory.chat_memory.messages.pop(-1)
+            ai_messages[i] = ai_message.content
+            human_message = chain.memory.chat_memory.messages.pop(-1) 
+            human_messages[i] = human_message.content
+
+        return versions, ai_messages, human_messages
+
+    def add_chapter_to_book_as_messages(self, chapter_number, human_message, ai_message): 
+        """Add a chapter to the book as messages."""
+        self.chain.memory.chat_memory.messages.append(
+            HumanMessage(name=f"chapter{chapter_number}", content=human_message)
+        )
+        self.chain.memory.chat_memory.messages.append(
+            AIMessage(name=f"chapter{chapter_number}", content=ai_message)
+        )
+
+
     def generate_chapter(self, chapter_prompt, chapter, temporary_file_path=None):
         """Generate the next chapter of the book.
 
@@ -231,45 +335,6 @@ class Writer:
             next_chapter = chapter
         return chain, next_chapter
 
-    def save_history_to_file(
-        file_path: Union[str, Path], chain_memory: ConversationBufferMemory
-    ):
-        """Save the conversation history to a file.
-
-        It should keep the messages in the same order as they were generated.
-        It should include the chapter, the human message, and the AI message.
-
-        Args:
-            file_path (str): The path to the file where the history will be saved.
-            chain_memory (ConversationBufferMemory): The memory of the chain that contains the conversation history.
-
-        Example:
-        {
-            "chapter1": {
-                "human_message": "The human message",
-                "ai_message": "The AI message"
-            },
-            "chapter2": {
-                "human_message": "The human message",
-                "ai_message": "The AI message"
-            }
-        }
-        """
-        history = {}
-        messages = chain_memory.chat_memory.messages
-        for i, message in enumerate(messages):
-            chapter_counter = 1
-            if isinstance(message, AIMessage) and i > 2:
-                history[f"chapter{chapter_counter}"] = {
-                    "human_message": messages[i - 1].content,
-                    "ai_message": message.content,
-                }
-                chapter_counter += 1
-        with open(file_path, "w") as f:
-            json.dump(history, f)
-        # with open(file_path, "w") as f:
-        #     f.write(history)
-
     def update_chain_memory_with_messages_from_file(
         file_path: Union[str, Path],
         chain_memory: ConversationBufferMemory,
@@ -327,21 +392,7 @@ class Writer:
             chain, chapter = generate_next_chapter(chain, prompt, chapter)
         return chain
 
-    def save_book_to_file(file_path: Union[str, Path], chain):
-        """Save the book to a file.
 
-        Args:
-            file_path (str): The path to the file where the book will be saved.
-            chain (Chain): The chain that was used to generate the book.
-
-        """
-        book = chain.memory.chat_memory.messages
-        chapters = [i.content for i in book if isinstance(i, AIMessage)]
-
-        with open(file_path, "w") as f:
-            f.write("\n".join(chapters))
-
-        return file_path
 
     def init_chain(
         human_prompt_file: Union[str, Path], memory: ConversationBufferMemory = None
