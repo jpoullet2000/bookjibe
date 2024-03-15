@@ -1,10 +1,12 @@
 import os
+import dash
 from dash import dcc, html
 from dash import Input, Output, State
 from bookjibe.writer import (
     get_serialized_writer, 
     create_writer_from_book_data, 
     serialize_writer,
+    deserialize_writer,
 )
 from bookjibe.ui.component import make_chapter_drop_down_list
 from bookjibe.utils import parse_file_contents
@@ -111,3 +113,24 @@ def build_book_initializer_callbacks(app):
             )
         else:
             return "No book loaded", [], get_serialized_writer()
+
+    @app.callback(
+        Output("serialized_writer", "data", allow_duplicate=True),
+        Output("init_story_button", "disabled", allow_duplicate=True),
+        Input("init_story_button", "n_clicks"),
+        State("serialized_writer", "data"),
+        State("book_description", "value"),
+        State("prompt_file_dropdown", "value"),
+    )
+    def init_story(n_clicks, serialized_writer, book_description, init_prompt_file):
+        """This callback is triggered when the user clicks the init_story_button.
+        
+
+        """
+        if n_clicks > 0:
+            writer = deserialize_writer(serialized_writer)
+            response = writer.generate_book_story(init_prompt_file, book_description)
+            return serialize_writer(writer), True
+
+        
+        return dash.no_update, dash.no_update

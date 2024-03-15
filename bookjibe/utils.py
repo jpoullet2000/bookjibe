@@ -51,8 +51,8 @@ def get_human_prompt_from_file(file_path: Union[str, Path]):
 def check_if_name_in_message(messages):
     """Check if the name attribute is in the messages and is either "synopsis" or "chapterX" where X is any integer starting from 1."""
     for message in messages:
-        if hasattr(message, "name") and (
-            message.name == "synopsis"
+        if hasattr(message, "name") and message.name is not None and (
+            message.name == "synopsis" 
             or message.name.startswith("chapter")
         ):
             return True
@@ -70,13 +70,14 @@ def get_last_chapter_number_from_messages(messages):
     if check_if_name_in_message(messages):
         max_chapter = 0
         for message in messages:
-            if hasattr(message, "name") and message.name.startswith("chapter"):
+            if hasattr(message, "name") and message.name is not None and message.name.startswith("chapter"):
                 current_chapter = int(message.name.replace("chapter", ""))
                 if current_chapter > max_chapter:
                     max_chapter = current_chapter
         return max_chapter
     else:
-        return len([message for message in messages if message["type"] == "AIMessage"]) - 1
+        return 0
+        # return len([message for message in messages if message["type"] == "AIMessage"]) - 1
 
 def parse_file_contents(contents, filename):
     """Parse the contents of a JSON file."""

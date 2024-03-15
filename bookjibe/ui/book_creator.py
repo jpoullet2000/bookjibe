@@ -149,31 +149,28 @@ def build_book_creator_callbacks(app):
         n_clicks, serialized_writer, chapter_list, chapter_description
     ):
         if n_clicks > 0:
-            # TO KEEP FOR FUTURE USE
-            # writer = deserialize_writer(serialized_writer=serialized_writer)
-            # _, ai_messages, human_messages = writer.generate_chapter_versions(
-            #     chapter_prompt=chapter_description,
-            #     chapter=writer.get_last_chapter_number() + 1,
-            # )
-            # versions_dict = {
-            #     "ai_messages": { ai_messages,
-            #     "human_messages": human_messages,
-            # }
-            from langchain_core.messages import AIMessage, HumanMessage
-
+            writer = deserialize_writer(serialized_writer=serialized_writer)
+            _, ai_messages, human_messages = writer.generate_chapter_versions(
+                chapter_prompt=chapter_description,
+                chapter=writer.get_last_chapter_number() + 1,
+            )
             versions_dict = {
-                "ai_messages": {
-                    1: "Chapitre 3 : Révélation des dessins mystérieux\n\nSarah était assise à son bureau.",
-                    2: "Chapitre 3 : Ceci est la 2ème version",
-                },
-                "human_messages": {
-                    1: "Ecris le chapitre 3 de l'histoire. Sarah va découvrir à quoi font référence ces dessins mystérieux. ",
-                    2: "Ecris le chapitre 3 de l'histoire. Sarah va découvrir à quoi font référence ces dessins mystérieux. ",
-                },
+                "ai_messages": ai_messages,
+                "human_messages": human_messages,
             }
-            # TO REMOVE
-            # serialized_writer = serialize_writer(writer)
-            # new_dropdown_chapter_list = make_chapter_drop_down_list(writer)
+            # ONLY FOR TESTING
+            # from langchain_core.messages import AIMessage, HumanMessage
+
+            # versions_dict = {
+            #     "ai_messages": {
+            #         1: "Chapitre 3 : Révélation des dessins mystérieux\n\nSarah était assise à son bureau.",
+            #         2: "Chapitre 3 : Ceci est la 2ème version",
+            #     },
+            #     "human_messages": {
+            #         1: "Ecris le chapitre 3 de l'histoire. Sarah va découvrir à quoi font référence ces dessins mystérieux. ",
+            #         2: "Ecris le chapitre 3 de l'histoire. Sarah va découvrir à quoi font référence ces dessins mystérieux. ",
+            #     },
+            # }
             return json.dumps(versions_dict)
         else:
             return {}
@@ -243,6 +240,7 @@ def build_book_creator_callbacks(app):
             selected_version = 0
             return serialized_writer, selected_version
         writer = deserialize_writer(serialized_writer=serialized_writer)
+        breakpoint()
         writer.add_chapter_to_book_as_messages(
             chapter_number=writer.get_last_chapter_number() + 1,
             human_message=human_message,
