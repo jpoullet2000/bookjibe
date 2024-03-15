@@ -217,7 +217,7 @@ class Writer:
                     "ai_message": message.content,
                 }
                  
-            if isinstance(message, AIMessage):
+            if i>=2 and isinstance(message, AIMessage):
                 history[f"chapter{chapter_counter}"] = {
                     "human_message": messages[i - 1].content,
                     "ai_message": message.content,
