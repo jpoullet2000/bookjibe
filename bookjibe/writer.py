@@ -56,7 +56,6 @@ def create_writer_from_book_data(book_data):
         >>> writer = generate_chain_from_book_data(book_data)
     """
     writer = Writer()
-    # breakpoint()
     for item_name, item_value in book_data.items():
         writer.chain.memory.chat_memory.messages.append(
             HumanMessage(name=item_name, content=item_value["human_message"])
@@ -160,6 +159,16 @@ class Writer:
             if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
                 return {"name": message.name, "content": message.content}
         return None
+    
+    def update_chapter_ai_message(self, chapter_number, current_chapter_text):
+        """Update the AI message of the chapter with the given number in the messages."""
+        messages = self.chain.memory.chat_memory.messages
+        for i, message in enumerate(messages):
+            if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
+                print(current_chapter_text)
+                messages[i] = AIMessage(name=f"chapter{chapter_number}", content=current_chapter_text)
+                break
+        return messages
     
     def save_book_to_file(self, file_path: Union[str, Path]):
         """Save the book to a file.

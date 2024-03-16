@@ -1,5 +1,6 @@
 from typing import List, Dict
 from dash import dcc, html
+import dash_bootstrap_components as dbc
 from bookjibe.writer import Writer
 
 
@@ -17,7 +18,7 @@ def generate_drop_down_list(id: str, item_list: List[Dict], item_label: str):
     )
 
 
-def render_chapter_versions(writer: Writer, chapter_number: int):
+def render_chapter_versions(id: str, writer: Writer, chapter_number: int):
     """Render the chapter versions.
 
     It creates a table with 3 columns: name of the chapter,
@@ -27,7 +28,7 @@ def render_chapter_versions(writer: Writer, chapter_number: int):
         id="chapter-versions",
         children=[
             html.Tr(
-                [html.Th("Chapter"), html.Th("Human Message"), html.Th("AI Message")]
+                [html.Th("Chapter", style={'width': '5%'}), html.Th("Human Message", style={'width': '25%'}), html.Th("AI Message", style={'width': '70%'})]
             )
         ]
         + [
@@ -35,7 +36,19 @@ def render_chapter_versions(writer: Writer, chapter_number: int):
                 [
                     html.Td(chapter_number),
                     html.Td(writer.get_chapter_human_message(chapter_number)),
-                    html.Td(writer.get_chapter_ai_message(chapter_number)),
+                    html.Td(
+                        # dcc.Input(
+                        #     id=id,
+                        #     value=writer.get_chapter_ai_message(chapter_number),
+                        #     style={'width': '100%', 'height': '100px'},  # Adjust size as needed
+                        #     debounce=True,  # Use debounce property
+                        # )
+                        dcc.Textarea(
+                            id=id,
+                            value=writer.get_chapter_ai_message(chapter_number),
+                            style={'width': '100%', 'height': '100px'},  # Adjust size as needed
+                        )
+                    ),
                 ]
             )
         ],
