@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from bookjibe.writer import Writer
 
 
-def generate_drop_down_list(id: str, item_list: List[Dict], item_label: str):
+def generate_drop_down_list(id: str, item_list: List[Dict], item_label: str, default_value: int = None):
     """Generate a drop-down list from a list of items.
 
     It generates a dash dcc.Dropdown component from a list of items.
@@ -15,6 +15,7 @@ def generate_drop_down_list(id: str, item_list: List[Dict], item_label: str):
             {"label": item["label"], "value": item["value"]} for item in item_list
         ],
         placeholder=f"Select a {item_label}",
+        value=default_value,
     )
 
 
@@ -55,7 +56,7 @@ def render_chapter_versions(id: str, writer: Writer, chapter_number: int):
     )
 
 
-def make_chapter_drop_down_list(writer: Writer):
+def make_chapter_drop_down_list(writer: Writer, default_value: int = None):
     """Make a drop-down list of chapters."""
     last_chapter_number = writer.get_last_chapter_number()
     chapters = []
@@ -63,5 +64,5 @@ def make_chapter_drop_down_list(writer: Writer):
         chapter = f"Chapter {i}"
         chapters.append({"label": chapter, "value": i})
     return generate_drop_down_list(
-        id="chapter_dropdown", item_list=chapters, item_label="chapter"
+        id="chapter_dropdown", item_list=chapters, item_label="chapter", default_value=default_value
     )

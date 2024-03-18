@@ -165,7 +165,6 @@ class Writer:
         messages = self.chain.memory.chat_memory.messages
         for i, message in enumerate(messages):
             if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
-                print(current_chapter_text)
                 messages[i] = AIMessage(name=f"chapter{chapter_number}", content=current_chapter_text)
                 break
         return messages
