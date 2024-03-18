@@ -27,6 +27,3 @@ OPENAI_MODEL=gpt-3.5-turbo
 ```
 
 Note that `BOOKJIBE_PROMPT_FOLDER` can refer a different folder (not limited to french prompts). The bookjibe user language can also be a different language, e.g., `en`. 
-
-# TODO
-- make the chapter editable in the rendering
