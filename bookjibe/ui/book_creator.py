@@ -13,6 +13,7 @@ previous_values = None
 def get_book_creator_components():
     layout = html.Div(
         [
+            dcc.Location(id='url'),
             dcc.Input(
                 id="chapter_description",
                 type="text",
@@ -99,7 +100,15 @@ def get_book_creator_components():
             html.Div(id="popup_output"),
             html.Div(id="chapter_table", children=[render_chapter_versions("current_chapter_text", get_writer(), 1)]),
             dcc.Store("selected_chapter", data=1),
-            dcc.Interval(id='debounce-interval', interval=1000, n_intervals=0),  # Debounce interval to update the chapter text
+            html.Script("""
+                // JavaScript code to refresh the page
+                function refreshPage() {
+                    window.location.reload(true); //window.location.href = window.location.href;
+                }
+            """),
+            html.Div(id='refresh-output'),
+
+            #dcc.Interval(id='debounce-interval', interval=1000, n_intervals=0),  # Debounce interval to update the chapter text
         ],
     )
     return layout
@@ -108,6 +117,14 @@ def get_book_creator_components():
 
 def build_book_creator_callbacks(app):
 
+    @app.callback(
+        Output('refresh-output', 'children'),
+        [Input('restart_button', 'n_clicks')]
+    )
+    def refresh_page(n_clicks):
+        if n_clicks > 0:
+        # Call the JavaScript function to refresh the page
+            return html.Script('refreshPage();')
 
     @app.callback(
         Output("chapter_table", "children"),
@@ -133,41 +150,6 @@ def build_book_creator_callbacks(app):
             return serialize_writer(writer)
         else:
             return serialized_writer
-
-    # @app.callback(
-    #     Output("serialized_writer", "data", allow_duplicate=True),
-    #     #Output("chapter_list", "children", allow_duplicate=True),
-    #     #Input('debounce-interval', 'n_intervals'),
-    #     Input("current_chapter_text", "value"),
-    #     State("serialized_writer", "data"),
-    #     State("chapter_dropdown", "value"),
-    #     State("debounce-interval", "n_intervals")
-    # )
-    # def update_chapter_text(current_chapter_text, serialized_writer, chapter_number, n_intervals):
-    #     global previous_values
-    #     print(f"n_intervals: {n_intervals}")
-    #     print("previous_values: ", previous_values)
-    #     print("chapter_number: ", chapter_number)
-    #     if n_intervals == 0:
-    #         return dash.no_update
-    #     if previous_values is None:
-    #         previous_values = n_intervals
-    #     if previous_values is not None and previous_values < n_intervals:
-    #         print('updating chapter text')
-    #         previous_values = n_intervals
-    #         writer = deserialize_writer(serialized_writer=serialized_writer)
-    #         writer.update_chapter_ai_message(chapter_number, current_chapter_text)
-    #         dropdown_chapter_list = make_chapter_drop_down_list(writer)
-    #         return serialize_writer(writer)#, dropdown_chapter_list
-    #     else:
-    #         return dash.no_update#, dash.no_update
-
-        # ctx = dash.callback_context
-        # if ctx.triggered[0]['prop_id'].split('.')[0] == 'debounce-interval':
-        #     writer = deserialize_writer(serialized_writer=serialized_writer)
-        #     writer.update_chapter_ai_message(chapter_number, current_chapter_text)
-        #     return serialize_writer(writer)
-        # return dash.no_update
 
 
     @app.callback(
@@ -320,16 +302,27 @@ def build_book_creator_callbacks(app):
         return make_chapter_drop_down_list(writer, chapter_number)
 
 
+    # @app.callback(
+    #     Output("chapter_dropdown", "value", allow_duplicate=True),
+    #     Output("serialized_writer", "data", allow_duplicate=True),
+    #     Input("restart_button", "n_clicks"),
+    #     State("chapter_dropdown", "value"),
+    # )
+    # def restart_book(n_clicks, chapter_number):
+        
+    #     if n_clicks > 0:
+    #         writer = get_writer()
+    #         return None, serialize_writer(writer)
+    #     else:
+    #         return dash.no_update, dash.no_update
 
     @app.callback(
-        Output("serialized_writer", "data", allow_duplicate=True),
-        Output("chapter_list", "children", allow_duplicate=True),
-        Input("restart_button", "n_clicks"),
-        State("chapter_dropdown", "value"),
+        Output("save_book_button", "disabled", allow_duplicate=True),
+        Output("save_chapter_button", "n_clicks", allow_duplicate=True),
+        Input("save_chapter_button", "n_clicks"),
     )
-    def restart_book(n_clicks, chapter_number):
+    def enable_save_chapter_button(n_clicks):
         if n_clicks > 0:
-            writer = get_writer()
-            return serialize_writer(writer), make_chapter_drop_down_list(writer, default_value=chapter_number)
+            return False, 0
         else:
-            return dash.no_update, dash.no_update
+            return True, 0
