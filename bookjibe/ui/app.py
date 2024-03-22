@@ -4,7 +4,10 @@ from dash import html
 import dash_bootstrap_components as dbc
 from pathlib import Path
 from dotenv import load_dotenv
-from bookjibe.ui.prompt_generator import get_prompt_generator_components
+from bookjibe.ui.prompt_generator import (
+    get_prompt_generator_components,
+    build_prompt_generator_callbacks,
+)
 from bookjibe.ui.book_initializer import (
     get_book_initializer_components,
     build_book_initializer_callbacks,
@@ -62,6 +65,8 @@ app.layout = html.Div(
 
 build_book_initializer_callbacks(app)
 build_book_creator_callbacks(app)
+build_prompt_generator_callbacks(app)
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)

@@ -106,22 +106,21 @@ def generate_prompt_logic(system_prompt_file, prompt_text, init_prompt_folder, o
         agree_message = "Yes, that works for me."
     with open(system_prompt_file, "r") as f:
         system_prompt_string = f.read()
-
     system_prompt_template = SystemMessagePromptTemplate(
         prompt=PromptTemplate(input_variables=[], 
                             template=system_prompt_string))
     
     prompt_template.messages[0] = system_prompt_template
     chain = prompt_template | llm 
-    ai_message = chain.invoke({'input': f"/PromptGenerator {prompt_text}", 'agent_scratchpad': []})
-
-    not_formatted_file = f"{init_prompt_folder}/{output_name}.txt"
-    formatted_file = f"{init_prompt_folder}/{output_name}_specifications.txt"
+    ai_message = chain.invoke({'input': f"/PromptGenerator J'aimerais écrire un {prompt_text}", 'agent_scratchpad': []})
+    not_formatted_file = f"{init_prompt_folder}/{output_name}_specifications.txt"
+    formatted_file = f"{init_prompt_folder}/{output_name}_prompt.txt"
 
     with open(not_formatted_file, "w") as f:
         f.write(ai_message.content)
-
-    prompt_template.messages.append(ai_message) 
+    ai_message_rewritten = ai_message
+    ai_message_rewritten.content = ai_message.content.replace("\n", " ")
+    prompt_template.messages.append(ai_message_rewritten) 
     chain_2 = prompt_template | llm
     ai_message2 = chain_2.invoke({'input': agree_message, 'agent_scratchpad': []})
     with open(formatted_file, "w") as f:
