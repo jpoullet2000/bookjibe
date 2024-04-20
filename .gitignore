@@ -166,3 +166,4 @@ tmp/
 # VSCODE
 .vscode/
 **/.vscode/
+init_prompts_vector_embedding/
