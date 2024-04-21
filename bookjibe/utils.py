@@ -5,9 +5,11 @@ import pandas as pd
 import json
 import io
 from langchain import hub
-from langchain_core.prompts.chat import ChatPromptTemplate
+from langchain_core.prompts.prompt import PromptTemplate
+from langchain_core.prompts.chat import ChatPromptTemplate, SystemMessagePromptTemplate
 from langchain.memory import ConversationBufferMemory
 from langchain.chains.question_answering import load_qa_chain
+
 
 
 def get_prompt():
@@ -93,3 +95,33 @@ def parse_file_contents(contents, filename):
     except Exception as e:
         print(e)
         return None
+
+def generate_prompt_logic(system_prompt_file, prompt_text, init_prompt_folder, output_name, llm, language):
+    """Generate the prompt logic."""
+    from langchain import hub
+    prompt_template = hub.pull("hwchase17/openai-functions-agent")
+    if language == "fr":
+        agree_message = "Oui cela me convient."
+    elif language == "en":
+        agree_message = "Yes, that works for me."
+    with open(system_prompt_file, "r") as f:
+        system_prompt_string = f.read()
+    system_prompt_template = SystemMessagePromptTemplate(
+        prompt=PromptTemplate(input_variables=[], 
+                            template=system_prompt_string))
+    
+    prompt_template.messages[0] = system_prompt_template
+    chain = prompt_template | llm 
+    ai_message = chain.invoke({'input': f"/PromptGenerator J'aimerais écrire un {prompt_text}", 'agent_scratchpad': []})
+    not_formatted_file = f"{init_prompt_folder}/{output_name}_specifications.txt"
+    formatted_file = f"{init_prompt_folder}/{output_name}_prompt.txt"
+
+    with open(not_formatted_file, "w") as f:
+        f.write(ai_message.content)
+    ai_message_rewritten = ai_message
+    ai_message_rewritten.content = ai_message.content.replace("\n", " ")
+    prompt_template.messages.append(ai_message_rewritten) 
+    chain_2 = prompt_template | llm
+    ai_message2 = chain_2.invoke({'input': agree_message, 'agent_scratchpad': []})
+    with open(formatted_file, "w") as f:
+        f.write(ai_message2.content)

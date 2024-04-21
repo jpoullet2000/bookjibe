@@ -3,7 +3,7 @@ Generate books with AI power.
 
 ![The UI](images/ui.png)
 
-# Installation 
+## Installation 
 
 Clone the repo. 
 
@@ -27,3 +27,11 @@ OPENAI_MODEL=gpt-3.5-turbo
 ```
 
 Note that `BOOKJIBE_PROMPT_FOLDER` can refer a different folder (not limited to french prompts). The bookjibe user language can also be a different language, e.g., `en`. 
+
+## Get started
+
+From the root folder, type:
+
+```bash
+python bookjibe/ui/app.py
+```

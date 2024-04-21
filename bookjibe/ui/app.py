@@ -4,6 +4,10 @@ from dash import html
 import dash_bootstrap_components as dbc
 from pathlib import Path
 from dotenv import load_dotenv
+from bookjibe.ui.prompt_generator import (
+    get_prompt_generator_components,
+    build_prompt_generator_callbacks,
+)
 from bookjibe.ui.book_initializer import (
     get_book_initializer_components,
     build_book_initializer_callbacks,
@@ -29,6 +33,7 @@ prompt_folder = os.getenv("BOOKJIBE_PROMPT_FOLDER")
 prompt_files = [
     file for file in os.listdir(prompt_folder) if file.endswith("prompt.txt")
 ]
+
 select_prompt_file_txt = "Select a prompt file to start the story"
 
 
@@ -47,14 +52,21 @@ collapse_book_initializer = html.Div(
 app.layout = html.Div(
     [
         html.H1("Book Generator", className="text-center my-4"),
-        collapse_book_initializer,
-        get_book_creator_components(),
+        dbc.Tabs([
+            dbc.Tab(label="Prompt generator", children=get_prompt_generator_components()),
+            dbc.Tab(label="Book Creator", children=[
+                collapse_book_initializer,
+                get_book_creator_components(),
+                ]),
+        ]),
     ],
     className="container",
 )
 
 build_book_initializer_callbacks(app)
 build_book_creator_callbacks(app)
+build_prompt_generator_callbacks(app)
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)
