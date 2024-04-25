@@ -145,12 +145,8 @@ def build_book_creator_callbacks(app):
     )
     def save_chapter(n_clicks, serialized_writer, current_chapter_text, chapter_number):
         if n_clicks > 0:
-            print("---------\n", current_chapter_text)
             writer = deserialize_writer(serialized_writer=serialized_writer)
             writer.update_chapter_ai_message(chapter_number, current_chapter_text)
-            print("Current paragraph: ", writer.get_chapter_ai_message(chapter_number))
-            import time
-            time.sleep(0.5)
             return serialize_writer(writer)
         else:
             return serialized_writer
@@ -303,7 +299,6 @@ def build_book_creator_callbacks(app):
     )
     def update_chapter_list(serialized_writer, chapter_number):
         writer = deserialize_writer(serialized_writer=serialized_writer)
-        print("chapter list:", writer.get_chapter_ai_message(2))
         return make_chapter_drop_down_list(writer, chapter_number)
 
 
