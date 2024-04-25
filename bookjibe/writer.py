@@ -1,8 +1,5 @@
 from langchain.docstore.document import Document
-from langchain.chains.question_answering import load_qa_chain
 from langchain.memory import ConversationBufferMemory
-from langchain import hub
-from langchain_core.prompts.chat import ChatPromptTemplate
 from bookjibe.llm import llm
 from langchain_core.messages import AIMessage, HumanMessage
 from pathlib import Path
@@ -12,7 +9,7 @@ from typing import Union
 import json
 import base64
 import pickle
-from bookjibe.settings import init_prompt_folder, user_language, temporary_folder
+from bookjibe.settings import init_prompt_folder, language, temporary_folder
 from bookjibe.utils import (
     get_prompt,
     create_chain_from_memory_and_prompt,
@@ -21,8 +18,8 @@ from bookjibe.utils import (
 )
 
 init_chapter_prompt = {
-    "en": "Write chapter XXX of the story.",
-    "fr": "Ecris le chapitre XXX de l'histoire.",
+    "en": "Write a section of chapter XXX of the story.",
+    "fr": "Ecris une section de chapitre XXX de l'histoire.",
 }
 
 
@@ -247,7 +244,7 @@ class Writer:
             chapter (int): The number of the current chapter.
         """
         chain = self.chain
-        init_chapter_prompt_txt = init_chapter_prompt[user_language].replace(
+        init_chapter_prompt_txt = init_chapter_prompt[language].replace(
             "XXX", str(chapter)
         )
         versions = {}
@@ -296,7 +293,7 @@ class Writer:
         print("Generating chapter...")
         chain = self.chain
         temporary_file_path = Path(temporary_folder) / f"chapter{chapter}.txt"
-        init_chapter_prompt_txt = init_chapter_prompt[user_language].replace(
+        init_chapter_prompt_txt = init_chapter_prompt[language].replace(
             "XXX", str(chapter)
         )
         versions = {}

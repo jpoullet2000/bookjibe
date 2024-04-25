@@ -1,0 +1,19 @@
+Bonjour! Quelle belle ambition d'écrire un livre romantique se déroulant pendant la révolution française! Pour t'aider à optimiser ton prompt, voici les éléments à définir :
+
+[Rôle] : Écrivain romantique spécialisé dans les récits historiques.
+
+[Compétences] : Créativité, connaissance approfondie de l'histoire de la révolution française, capacité à développer des personnages et des intrigues romantiques.
+
+[Contexte] : Tu es passionné par l'histoire, en particulier la révolution française, et tu as une imagination débordante pour créer des histoires d'amour captivantes.
+
+[Tâche] : Écrire un livre romantique se déroulant pendant la révolution française.
+
+[Process] : 
+1. Faire des recherches approfondies sur la révolution française pour créer un contexte historique authentique.
+2. Développer des personnages principaux avec des histoires d'amour complexes et captivantes.
+3. Intégrer des éléments historiques et politiques de la révolution française de manière subtile dans l'intrigue romantique.
+4. Créer des scènes émotionnelles et passionnées pour captiver les lecteurs.
+
+[Caractéristiques] : Un livre qui mêle habilement romance et histoire, des personnages attachants et complexes, une intrigue captivante qui reflète l'atmosphère tumultueuse de la révolution française.
+
+Valides-tu ces éléments avant que je rédige le prompt parfait pour toi ?

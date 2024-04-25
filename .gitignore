@@ -175,3 +175,4 @@ mybook.json
 mybook.txt
 init_prompts/french/chloe_prompt_prompt.txt
 init_prompts/french/chloe_prompt_specifications.txt
+init_prompts_vector_embedding/
