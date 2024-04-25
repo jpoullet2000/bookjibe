@@ -165,9 +165,12 @@ class Writer:
         messages = self.chain.memory.chat_memory.messages
         for i, message in enumerate(messages):
             if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
+                print("within update\n", current_chapter_text)
                 messages[i] = AIMessage(name=f"chapter{chapter_number}", content=current_chapter_text)
                 break
-        return messages
+        print("messages\n", messages[i])
+        self.chain.memory.chat_memory.messages = messages
+        return self
     
     def save_book_to_file(self, file_path: Union[str, Path]):
         """Save the book to a file.
