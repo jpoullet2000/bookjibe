@@ -264,11 +264,13 @@ def build_book_creator_callbacks(app):
         Output("selected_version", "data"),
         Output("version1_button", "n_clicks"),
         Output("version2_button", "n_clicks"),
+        Output("chapter_dropdown", "value"),
         [Input("version1_button", "n_clicks"), Input("version2_button", "n_clicks")],
         State("serialized_writer", "data"),
         State("versions_dict", "data"),
+        State("chapter_dropdown", "value")
     )
-    def return_value(card1_clicks, card2_clicks, serialized_writer, versions_dict):
+    def return_value(card1_clicks, card2_clicks, serialized_writer, versions_dict, chapter_dropdown_value):
         versions_dict = json.loads(versions_dict)
         if card1_clicks:
             # add human message and ai message from version 1 to the writer
@@ -289,7 +291,7 @@ def build_book_creator_callbacks(app):
             human_message=human_message,
             ai_message=ai_message,
         )
-        return serialize_writer(writer), selected_version, 0, 0
+        return serialize_writer(writer), selected_version, 0, 0, chapter_dropdown_value + 1
 
 
     @app.callback(
