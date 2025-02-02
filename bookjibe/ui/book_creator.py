@@ -10,10 +10,11 @@ from bookjibe.writer import get_writer
 global previous_values
 previous_values = None
 
+
 def get_book_creator_components():
     layout = html.Div(
         [
-            dcc.Location(id='url'),
+            dcc.Location(id="url"),
             dcc.Input(
                 id="chapter_description",
                 type="text",
@@ -98,7 +99,12 @@ def get_book_creator_components():
                 is_open=False,
             ),
             html.Div(id="popup_output"),
-            html.Div(id="chapter_table", children=[render_chapter_versions("current_chapter_text", get_writer(), 1)]),
+            html.Div(
+                id="chapter_table",
+                children=[
+                    render_chapter_versions("current_chapter_text", get_writer(), 1)
+                ],
+            ),
             dcc.Store("selected_chapter", data=1),
             html.Script("""
                 // JavaScript code to refresh the page
@@ -106,25 +112,21 @@ def get_book_creator_components():
                     window.location.reload(true); //window.location.href = window.location.href;
                 }
             """),
-            html.Div(id='refresh-output'),
-
-            #dcc.Interval(id='debounce-interval', interval=1000, n_intervals=0),  # Debounce interval to update the chapter text
+            html.Div(id="refresh-output"),
+            # dcc.Interval(id='debounce-interval', interval=1000, n_intervals=0),  # Debounce interval to update the chapter text
         ],
     )
     return layout
 
 
-
 def build_book_creator_callbacks(app):
-
     @app.callback(
-        Output('refresh-output', 'children'),
-        [Input('restart_button', 'n_clicks')]
+        Output("refresh-output", "children"), [Input("restart_button", "n_clicks")]
     )
     def refresh_page(n_clicks):
         if n_clicks > 0:
-        # Call the JavaScript function to refresh the page
-            return html.Script('refreshPage();')
+            # Call the JavaScript function to refresh the page
+            return html.Script("refreshPage();")
 
     @app.callback(
         Output("chapter_table", "children"),
@@ -132,10 +134,12 @@ def build_book_creator_callbacks(app):
         State("serialized_writer", "data"),
     )
     def render_chapter_table(chapter_number, serialized_writer):
-        return render_chapter_versions("current_chapter_text",
-            deserialize_writer(serialized_writer=serialized_writer), chapter_number
+        return render_chapter_versions(
+            "current_chapter_text",
+            deserialize_writer(serialized_writer=serialized_writer),
+            chapter_number,
         )
-    
+
     @app.callback(
         Output("serialized_writer", "data", allow_duplicate=True),
         Input("save_chapter_button", "n_clicks"),
@@ -151,7 +155,6 @@ def build_book_creator_callbacks(app):
         else:
             return serialized_writer
 
-
     @app.callback(
         Output("prompt_file_dropdown", "disabled"),
         Output("book_description", "disabled"),
@@ -163,7 +166,6 @@ def build_book_creator_callbacks(app):
             return True, True, True
         else:
             return False, False, False
-
 
     @app.callback(
         Output("save_book_button", "disabled"),
@@ -178,7 +180,6 @@ def build_book_creator_callbacks(app):
             return True
         else:
             return False
-
 
     @app.callback(
         Output("versions_dict", "data"),
@@ -227,8 +228,6 @@ def build_book_creator_callbacks(app):
         else:
             return True
 
-
-
     # Define callback to close the popup
     @app.callback(
         Output("modal", "is_open", allow_duplicate=True),
@@ -239,7 +238,6 @@ def build_book_creator_callbacks(app):
         if n or selected_version:
             return False
         return is_open
-
 
     @app.callback(
         Output("modal", "is_open"),
@@ -258,7 +256,6 @@ def build_book_creator_callbacks(app):
         else:
             return False, "", ""
 
-
     @app.callback(
         Output("serialized_writer", "data"),
         Output("selected_version", "data"),
@@ -268,9 +265,15 @@ def build_book_creator_callbacks(app):
         [Input("version1_button", "n_clicks"), Input("version2_button", "n_clicks")],
         State("serialized_writer", "data"),
         State("versions_dict", "data"),
-        State("chapter_dropdown", "value")
+        State("chapter_dropdown", "value"),
     )
-    def return_value(card1_clicks, card2_clicks, serialized_writer, versions_dict, chapter_dropdown_value):
+    def return_value(
+        card1_clicks,
+        card2_clicks,
+        serialized_writer,
+        versions_dict,
+        chapter_dropdown_value,
+    ):
         versions_dict = json.loads(versions_dict)
         if card1_clicks:
             # add human message and ai message from version 1 to the writer
@@ -291,8 +294,13 @@ def build_book_creator_callbacks(app):
             human_message=human_message,
             ai_message=ai_message,
         )
-        return serialize_writer(writer), selected_version, 0, 0, chapter_dropdown_value + 1
-
+        return (
+            serialize_writer(writer),
+            selected_version,
+            0,
+            0,
+            chapter_dropdown_value + 1,
+        )
 
     @app.callback(
         Output("chapter_list", "children", allow_duplicate=True),
@@ -303,7 +311,6 @@ def build_book_creator_callbacks(app):
         writer = deserialize_writer(serialized_writer=serialized_writer)
         return make_chapter_drop_down_list(writer, chapter_number)
 
-
     # @app.callback(
     #     Output("chapter_dropdown", "value", allow_duplicate=True),
     #     Output("serialized_writer", "data", allow_duplicate=True),
@@ -311,7 +318,7 @@ def build_book_creator_callbacks(app):
     #     State("chapter_dropdown", "value"),
     # )
     # def restart_book(n_clicks, chapter_number):
-        
+
     #     if n_clicks > 0:
     #         writer = get_writer()
     #         return None, serialize_writer(writer)
@@ -320,11 +327,11 @@ def build_book_creator_callbacks(app):
 
     @app.callback(
         Output("save_book_button", "disabled", allow_duplicate=True),
-        #Output("save_chapter_button", "n_clicks", allow_duplicate=True),
+        # Output("save_chapter_button", "n_clicks", allow_duplicate=True),
         Input("save_chapter_button", "n_clicks"),
     )
     def enable_save_chapter_button(n_clicks):
         if n_clicks > 0:
-            return False #, 0
+            return False  # , 0
         else:
-            return True #, 0
+            return True  # , 0
