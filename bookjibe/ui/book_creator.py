@@ -6,9 +6,14 @@ import json
 from bookjibe.writer import deserialize_writer, serialize_writer
 from bookjibe.ui.component import make_chapter_drop_down_list, render_chapter_versions
 from bookjibe.writer import get_writer
+import datetime
 
 global previous_values
 previous_values = None
+
+
+def get_book_filename():
+    return f"mybook-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
 
 
 def get_book_creator_components():
@@ -175,8 +180,8 @@ def build_book_creator_callbacks(app):
     def save_book(n_clicks, serialized_writer):
         if n_clicks > 0:
             writer = deserialize_writer(serialized_writer=serialized_writer)
-            writer.save_history_to_file("mybook.json")
-            writer.save_book_to_file("mybook.txt")
+            writer.save_history_to_file(f"{get_book_filename()}.json")
+            writer.save_book_to_file(f"{get_book_filename()}.txt")
             return True
         else:
             return False

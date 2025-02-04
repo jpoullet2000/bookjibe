@@ -62,6 +62,7 @@ def create_writer_from_book_data(book_data):
         )
     return writer
 
+
 def serialize_writer(writer):
     return base64.b64encode(pickle.dumps(writer)).decode("utf-8")
 
@@ -69,9 +70,11 @@ def serialize_writer(writer):
 def deserialize_writer(serialized_writer):
     return pickle.loads(base64.b64decode(serialized_writer))
 
+
 def get_serialized_writer():
     writer = Writer()
     return serialize_writer(writer)
+
 
 def get_writer():
     writer = Writer()
@@ -84,7 +87,9 @@ class Writer:
     def __init__(self, initial_memory: ConversationBufferMemory = None):
         # self.llm = llm
         if initial_memory is None:
-            initial_memory = ConversationBufferMemory(memory_key="chat_history", input_key="input")
+            initial_memory = ConversationBufferMemory(
+                memory_key="chat_history", input_key="input"
+            )
         self.initial_memory = initial_memory
         self.prompt = self._generate_prompt()
 
@@ -118,12 +123,11 @@ class Writer:
                 "input_documents": [],
             }
         )
-    
+
     def get_last_chapter_number(self):
         messages = self.chain.memory.chat_memory.messages
         return get_last_chapter_number_from_messages(messages)
 
-    
     def get_chapter_numbers_list(self):
         """Get the list of chapter numbers from the messages. If there are no chapters, return an empty list."""
         messages = self.chain.memory.chat_memory.messages
@@ -137,15 +141,21 @@ class Writer:
         """Get the AI message of the chapter with the given number from the messages. If the chapter does not exist, return None."""
         messages = self.chain.memory.chat_memory.messages
         for message in messages:
-            if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
+            if (
+                isinstance(message, AIMessage)
+                and message.name == f"chapter{chapter_number}"
+            ):
                 return message.content
         return None
-    
+
     def get_chapter_human_message(self, chapter_number):
         """Get the human message of the chapter with the given number from the messages. If the chapter does not exist, return None."""
         messages = self.chain.memory.chat_memory.messages
         for message in messages:
-            if isinstance(message, HumanMessage) and message.name == f"chapter{chapter_number}":
+            if (
+                isinstance(message, HumanMessage)
+                and message.name == f"chapter{chapter_number}"
+            ):
                 return message.content
         return None
 
@@ -153,22 +163,30 @@ class Writer:
         """Get the chapter with the given number from the messages. If the chapter does not exist, return None."""
         messages = self.chain.memory.chat_memory.messages
         for message in messages:
-            if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
+            if (
+                isinstance(message, AIMessage)
+                and message.name == f"chapter{chapter_number}"
+            ):
                 return {"name": message.name, "content": message.content}
         return None
-    
+
     def update_chapter_ai_message(self, chapter_number, current_chapter_text):
         """Update the AI message of the chapter with the given number in the messages."""
         messages = self.chain.memory.chat_memory.messages
         for i, message in enumerate(messages):
-            if isinstance(message, AIMessage) and message.name == f"chapter{chapter_number}":
+            if (
+                isinstance(message, AIMessage)
+                and message.name == f"chapter{chapter_number}"
+            ):
                 print("within update\n", current_chapter_text)
-                messages[i] = AIMessage(name=f"chapter{chapter_number}", content=current_chapter_text)
+                messages[i] = AIMessage(
+                    name=f"chapter{chapter_number}", content=current_chapter_text
+                )
                 break
         print("messages\n", messages[i])
         self.chain.memory.chat_memory.messages = messages
         return self
-    
+
     def save_book_to_file(self, file_path: Union[str, Path]):
         """Save the book to a file.
 
@@ -185,10 +203,9 @@ class Writer:
 
         return file_path
 
-    
     def save_history_to_file(
-            self, 
-            file_path: Union[str, Path], 
+        self,
+        file_path: Union[str, Path],
     ):
         """Save the conversation history to a file.
 
@@ -219,13 +236,15 @@ class Writer:
         messages = self.chain.memory.chat_memory.messages
         chapter_counter = 1
         for i, message in enumerate(messages):
-            if i < 2 and isinstance(message, AIMessage): # skip the first two messages which are the initial prompt and the first AI message, it describes the story but it is not the story itself.
+            if (
+                i < 2 and isinstance(message, AIMessage)
+            ):  # skip the first two messages which are the initial prompt and the first AI message, it describes the story but it is not the story itself.
                 history["synopsys"] = {
                     "human_message": messages[i - 1].content,
                     "ai_message": message.content,
                 }
-                 
-            if i>=2 and isinstance(message, AIMessage):
+
+            if i >= 2 and isinstance(message, AIMessage):
                 history[f"chapter{chapter_counter}"] = {
                     "human_message": messages[i - 1].content,
                     "ai_message": message.content,
@@ -238,7 +257,7 @@ class Writer:
 
     def generate_chapter_versions(self, chapter_prompt, chapter, number_of_versions=2):
         """Generate versions for the next chapter of the book.
-        
+
         Args:
             chapter_prompt (str): The prompt to be used for the chapter.
             chapter (int): The number of the current chapter.
@@ -250,25 +269,50 @@ class Writer:
         versions = {}
         ai_messages = {}
         human_messages = {}
+        last_chapter = self.get_last_chapter_number()
+        if last_chapter is None:
+            last_chapter = 0
+        if last_chapter >= 1:
+            last_chapter_content = self.get_chapter(last_chapter)
+        else:
+            last_chapter_content = ""
+        match language:
+            case "en":
+                last_chapter_prompt = (
+                    f"Given the previous chapter: {last_chapter_content['content']}\n"
+                )
+            case "fr":
+                last_chapter_prompt = f"Etant donné le chapitre précédent: {last_chapter_content['content']}\n"
+            case _:
+                last_chapter_prompt = (
+                    f"Given the previous chapter: {last_chapter_content['content']}\n"
+                )
 
+        input_prompt = (
+            f"{last_chapter_prompt}{init_chapter_prompt_txt} {chapter_prompt}"
+        )
         for i in range(1, number_of_versions + 1):
             versions[i] = chain.invoke(
                 {
-                    "input": f"{init_chapter_prompt_txt} {chapter_prompt}",
+                    "input": input_prompt,
                     "agent_scratchpad": [],
                     "input_documents": [
-                        Document(page_content=chapter_prompt, metadata={"source": "local"})
+                        Document(
+                            page_content=chapter_prompt, metadata={"source": "local"}
+                        )
                     ],
                 }
             )
             ai_message = chain.memory.chat_memory.messages.pop(-1)
             ai_messages[i] = ai_message.content
-            human_message = chain.memory.chat_memory.messages.pop(-1) 
+            human_message = chain.memory.chat_memory.messages.pop(-1)
             human_messages[i] = human_message.content
 
         return versions, ai_messages, human_messages
 
-    def add_chapter_to_book_as_messages(self, chapter_number, human_message, ai_message): 
+    def add_chapter_to_book_as_messages(
+        self, chapter_number, human_message, ai_message
+    ):
         """Add a chapter to the book as messages."""
         self.chain.memory.chat_memory.messages.append(
             HumanMessage(name=f"chapter{chapter_number}", content=human_message)
@@ -276,7 +320,6 @@ class Writer:
         self.chain.memory.chat_memory.messages.append(
             AIMessage(name=f"chapter{chapter_number}", content=ai_message)
         )
-
 
     def generate_chapter(self, chapter_prompt, chapter, temporary_file_path=None):
         """Generate the next chapter of the book.
@@ -407,8 +450,6 @@ class Writer:
     #         )
     #         chain, chapter = generate_next_chapter(chain, prompt, chapter)
     #     return chain
-
-
 
     def init_chain(
         human_prompt_file: Union[str, Path], memory: ConversationBufferMemory = None
